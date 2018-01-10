@@ -1,6 +1,6 @@
 import React, {Component} from "react";
 import {findDOMNode} from "react-dom";
-import "../css/Map.css"
+import "../css/Map.css";
 
 class MapCanvas extends Component {
     constructor(props) {
@@ -19,6 +19,10 @@ class MapCanvas extends Component {
         this.setState({map: new window.google.maps.Map(findDOMNode(this.refs.map), {
             zoom: 4, center: {lat: -25.5, lng: 133.417}
         })});
+    }
+
+    addPoint() {
+        return null;
     }
 
     render() {
