@@ -1,0 +1,26 @@
+.footer > .container {
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.wrap-box {
+    padding-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.wrap-box > .wrap-full-box {
+    width: 98%;
+    position: relative;
+    padding: 0.5rem;
+    margin: 0.1rem 1%;
+    border: solid #f7f7f9;
+}
+
+.wrap-box > .wrap-inner-box {
+    width: 48%;
+}
+
+.form-title {
+    font-size: larger;
+}
