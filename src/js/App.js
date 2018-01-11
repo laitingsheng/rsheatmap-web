@@ -1,22 +1,16 @@
 import React, {Component} from "react";
-import {GoogleMap, withGoogleMap} from "react-google-maps";
 import InputForm from "./Component";
+import MapCanvas from "./MapComponent";
 import "../css/Map.css";
-
-const MapCanvas = withGoogleMap((props) => <GoogleMap
-    defaultZoom={4}
-    defaultCenter={{lat: -25.5, lng: 133.417}}
-/>);
 
 class App extends Component {
     render() {
         return (<div>
-            <InputForm canvas={this.props.canvas} />
-            <MapCanvas containerElement={<div />}
-                       mapElement={<div className="map-canvas" />}
-            />
+            <InputForm canvas={this.canvas} />
+            <MapCanvas isMarkerShown />
         </div>);
     }
 }
 
+export {App};
 export default App;

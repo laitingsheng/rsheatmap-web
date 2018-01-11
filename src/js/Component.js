@@ -71,6 +71,7 @@ class InputForm extends Component {
 
     changeRegion(event) {
         event.preventDefault();
+        this.setState({queryHeight: this.refs.height, queryWidth: this.refs.width});
     }
 
     render() {
@@ -95,10 +96,10 @@ class InputForm extends Component {
             <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
                   onSubmit={this.changeRegion}>
                 <Title text="Query Region" />
-                <InputNumberBox name="Height" id="height" value={this.state.queryHeight}
-                                min="0" onChange={this.updateQueryHeight} />
-                <InputNumberBox name="Width" id="width" value={this.state.queryWidth} min="0"
-                                onChange={this.updateQueryWidth} />
+                <InputNumberBox name="Height" id="height" value={this.refs.height}
+                                min="0" placeholder={this.state.queryHeight} ref="queryHeight" />
+                <InputNumberBox name="Width" id="width" value={this.refs.width} min="0"
+                                placeholder={this.state.queryWidth} ref="queryWidth" />
                 <button type="submit" className="btn btn-primary">
                     Apply
                 </button>
@@ -107,4 +108,5 @@ class InputForm extends Component {
     }
 }
 
+export {InputForm};
 export default InputForm;
