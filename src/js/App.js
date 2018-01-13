@@ -1,13 +1,20 @@
 import React, {Component} from "react";
 import InputForm from "./Component";
-import MapCanvas from "./MapComponent";
+import MapComponent from "./MapComponent";
+import HeatMap from "./HeatMap";
 import "../css/Map.css";
 
 class App extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {heatmap: new HeatMap()};
+    }
+
     render() {
         return (<div>
-            <InputForm canvas={this.canvas} />
-            <MapCanvas isMarkerShown />
+            <InputForm />
+            <MapComponent isMarkerShown />
         </div>);
     }
 }

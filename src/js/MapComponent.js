@@ -1,4 +1,4 @@
-import React, {PureComponent} from "react";
+import React from "react";
 import {compose, withProps} from "recompose";
 import {GoogleMap, Marker, withGoogleMap, withScriptjs} from "react-google-maps";
 
@@ -11,14 +11,8 @@ const MapComponent = compose(withProps({
     defaultZoom={4}
     defaultCenter={{lat: -24.25, lng: 133.417}}
 >
-    {props.isMarkerShown && <Marker position={{lat: -24.25, lng: 133.417}} />}
+    {props.markers && props.markers.map(pos => <Marker position={pos} />)}
 </GoogleMap>);
 
-class MapCanvas extends PureComponent {
-    render() {
-        return <MapComponent isMarkerShown />;
-    }
-}
-
-export {MapCanvas};
-export default MapCanvas;
+export {MapComponent};
+export default MapComponent;
