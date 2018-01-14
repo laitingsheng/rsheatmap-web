@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", {value: true});
+var React = require("react");
+var ReactDOM = require("react-dom");
+var App_1 = require("./js/App");
+var Header_1 = require("./js/Header");
+var Footer_1 = require("./js/Footer");
+var registerServiceWorker_1 = require("./registerServiceWorker");
+ReactDOM.render(<Header_1.default/>, document.getElementById("header"));
+ReactDOM.render(<App_1.default/>, document.getElementById("root"));
+ReactDOM.render(<Footer_1.default/>, document.getElementById("footer"));
+registerServiceWorker_1.default();

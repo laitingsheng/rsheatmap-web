@@ -1,39 +1,40 @@
-import rbush from "rbush";
-import knn from "rbush-knn";
-
-class HeatMap {
-    constructor(opt) {
-        this.tree = new rbush();
+"use strict";
+Object.defineProperty(exports, "__esModule", {value: true});
+var rbush_1 = require("rbush");
+var rbush_knn_1 = require("rbush-knn");
+var HeatMap = /** @class */ (function () {
+    function HeatMap() {
+        this.tree = new rbush_1.default();
         this.points = [];
-
-        if(opt) {
-            this.queryHeight = opt.queryHeight;
-            this.queryWidth = opt.queryWidth;
-        } else this.queryHeight = this.queryWidth = 100;
+        this.queryHeight = this.queryWidth = 100;
     }
 
-    point2query(point) {
+    HeatMap.prototype.point2query = function (point) {
         return {
             minX: point.x - this.queryWidth, minY: point.y - this.queryHeight,
-            maxX: point.x + this.queryWidth, maxY: point.y + this.queryHeight, point
+            maxX: point.x + this.queryWidth, maxY: point.y + this.queryHeight, point: point
         };
-    }
-
-    addPoint(point) {
+    };
+    HeatMap.prototype.addPoint = function (point) {
         this.points.push(point);
         this.tree.insert(this.point2query(point));
-    }
-
-    addPoints(points) {
+    };
+    HeatMap.prototype.addPoints = function (points) {
         this.points.concat(points);
         this.tree.load(this.points.map(this.point2query));
-    }
-
-    retrieveDivision() {
+    };
+    HeatMap.prototype.divide = function () {
+        var _this = this;
         this.points.sort();
-        const weight = this.points.map(point => [point, knn(this.tree, point.x, point.y).length]);
-    }
-}
-
-export {HeatMap};
-export default HeatMap;
+        var w = Math.max.apply(Math, this.points.map(function (point) {
+            return rbush_knn_1.default(_this.tree, point.x, point.y).length;
+        }));
+        if (this.maxWeight)
+            this.maxWeight = w;
+        else
+            this.maxWeight = Math.max(this.maxWeight, w);
+    };
+    return HeatMap;
+}());
+exports.HeatMap = HeatMap;
+exports.default = HeatMap;
