@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { GoogleMap, Marker, withGoogleMap, withScriptjs } from 'react-google-maps';
-import HeatMap from './HeatMap';
 
-interface MapTagProps {
+export interface MapProps {
     markers: Array<google.maps.LatLngLiteral>;
 }
 
-const MapTag = withScriptjs(withGoogleMap((props: MapTagProps) => (
+const MapTag = withScriptjs(withGoogleMap((props: MapProps) => (
     <GoogleMap
         defaultZoom={4}
         defaultCenter={{ lat: -24.25, lng: 133.417 }}
@@ -15,14 +14,9 @@ const MapTag = withScriptjs(withGoogleMap((props: MapTagProps) => (
     </GoogleMap>
 )));
 
-export interface MapComponentProps {
-    heatmap: HeatMap;
-    markers: Array<google.maps.LatLngLiteral>;
-}
-
 const url = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDQtrmtYpJjFFCnpv0-3QN0yg3Xr5bmd7s';
 
-export class MapComponent extends React.Component<MapComponentProps> {
+export class MapComponent extends React.Component<MapProps> {
     render() {
         return (
             <MapTag markers={this.props.markers} googleMapURL={url} loadingElement={<div/>}

@@ -11,42 +11,50 @@ interface Region extends rbush.BBox {
 }
 
 class HeatMap {
-    tree: rbush.RBush<Region>;
-    points: Array<Point>;
-    queryHeight: number;
-    queryWidth: number;
-    maxWeight: number;
+    public points: Array<Point>;
+    public queryHeight: number;
+    public queryWidth: number;
+    public maxWeight: number;
+    private tree: rbush.RBush<Region>;
 
-    constructor() {
+    public constructor() {
         this.tree = rbush<Region>();
         this.points = [];
         this.queryHeight = this.queryWidth = 100;
     }
 
-    point2query(point: Point): Region {
-        return {
-            minX: point.x - this.queryWidth, minY: point.y - this.queryHeight,
-            maxX: point.x + this.queryWidth, maxY: point.y + this.queryHeight, point
-        };
-    }
-
-    addPoint(point: Point): void {
+    public addPoint(point: Point): void {
         this.points.push(point);
         this.tree.insert(this.point2query(point));
     }
 
-    addPoints(points: Array<Point>): void {
+    public addPoints(points: Array<Point>): void {
         this.points.concat(points);
         this.tree.load(this.points.map(this.point2query));
     }
 
-    divide(): void {
+    public changeQuery(queryHeight: number, queryWidth: number) {
+        this.queryHeight = queryHeight;
+        this.queryWidth = queryWidth;
+
+        this.tree = rbush();
+        this.tree.load(this.points.map(this.point2query));
+    }
+
+    public divide(): void {
         this.points.sort();
         const w = Math.max(...this.points.map(point => knn(this.tree, point.x, point.y).length));
         if (this.maxWeight)
             this.maxWeight = w;
         else
             this.maxWeight = Math.max(this.maxWeight, w);
+    }
+
+    private point2query(point: Point): Region {
+        return {
+            minX: point.x - this.queryWidth, minY: point.y - this.queryHeight,
+            maxX: point.x + this.queryWidth, maxY: point.y + this.queryHeight, point
+        };
     }
 }
 

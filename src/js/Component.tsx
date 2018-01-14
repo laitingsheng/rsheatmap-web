@@ -28,8 +28,14 @@ class InputNumberBox extends React.Component<React.InputHTMLAttributes<any>, any
     }
 }
 
+export interface BiFunction<T, U, R> {
+    (l: T, r: U): R;
+}
+
 export interface InputFormProps {
-    heatmap: HeatMap;
+    index: HeatMap;
+    changeRegion: BiFunction<number, number, void>;
+    addPoint: BiFunction<number, number, void>;
 }
 
 export interface InputFormState {
@@ -40,7 +46,7 @@ export interface InputFormState {
 export class InputForm extends React.Component<InputFormProps, InputFormState> {
     private input: HTMLInputElement;
 
-    constructor(props: InputFormProps) {
+    public constructor(props: InputFormProps) {
         super(props);
 
         this.state = {
@@ -84,7 +90,7 @@ export class InputForm extends React.Component<InputFormProps, InputFormState> {
         event.preventDefault();
     }
 
-    render() {
+    public render() {
         return (
             <div className="wrap-box">
                 <form encType="multipart/form-data" className="wrap-full-box"
