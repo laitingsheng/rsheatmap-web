@@ -4,12 +4,10 @@ import MapComponent from './MapComponent';
 import HeatMap from './HeatMap';
 import '../css/Map.css';
 
-export interface AppProps {
-    index: HeatMap;
-}
+const index = new HeatMap();
 
-export class App extends React.Component<AppProps> {
-    constructor(props: AppProps) {
+export class App extends React.Component {
+    constructor(props: any) {
         super(props);
 
         this.addPoint = this.addPoint.bind(this);
@@ -18,19 +16,20 @@ export class App extends React.Component<AppProps> {
     public render() {
         return (
             <div>
-                <InputForm index={this.props.index} addPoint={this.addPoint}
-                           changeRegion={this.changeRegion}/>
-                <MapComponent markers={[]}/>
+                <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}/>
+                <MapComponent/>
             </div>
         );
     }
 
     private addPoint(x: number, y: number): void {
-        this.props.index.addPoint({ x, y });
+        index.addPoint({ x, y });
+        index.points.forEach(p => alert(p.x + ' ' + p.y));
     }
 
     private changeRegion(height: number, width: number): void {
-        this.props.index.changeQuery(height, width);
+        index.changeQuery(height, width);
+        alert(index.queryHeight + ' ' + index.queryWidth);
     }
 }
 

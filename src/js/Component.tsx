@@ -1,5 +1,4 @@
 import * as React from 'react';
-import HeatMap from './HeatMap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-fileinput/js/fileinput.min';
 import 'bootstrap-fileinput/css/fileinput.min.css';
@@ -33,7 +32,6 @@ export interface BiFunction<T, U, R> {
 }
 
 export interface InputFormProps {
-    index: HeatMap;
     changeRegion: BiFunction<number, number, void>;
     addPoint: BiFunction<number, number, void>;
 }
@@ -41,6 +39,8 @@ export interface InputFormProps {
 export interface InputFormState {
     height: number;
     width: number;
+    lat: number | undefined;
+    lng: number | undefined;
 }
 
 export class InputForm extends React.Component<InputFormProps, InputFormState> {
@@ -51,26 +51,16 @@ export class InputForm extends React.Component<InputFormProps, InputFormState> {
 
         this.state = {
             height: 100,
-            width: 100
+            width: 100,
+            lat: undefined,
+            lng: undefined
         };
 
         // bindings
-        this.updateHeight = this.updateHeight.bind(this);
-        this.updateWidth = this.updateWidth.bind(this);
         this.resetFiles = this.resetFiles.bind(this);
         this.addPoint = this.addPoint.bind(this);
         this.addPoints = this.addPoints.bind(this);
         this.generate = this.generate.bind(this);
-    }
-
-    updateHeight(event: React.ChangeEvent<number>) {
-        event.preventDefault();
-        this.setState({ height: event.target });
-    }
-
-    updateWidth(event: React.ChangeEvent<number>) {
-        event.preventDefault();
-        this.setState({ width: event.target });
     }
 
     resetFiles(event: React.FormEvent<any>) {
@@ -79,6 +69,8 @@ export class InputForm extends React.Component<InputFormProps, InputFormState> {
 
     addPoint(event: React.FormEvent<any>) {
         event.preventDefault();
+        this.props.addPoint(this.state.lat, this.state.lng);
+        this.setState({ lat: undefined, lng: undefined });
     }
 
     addPoints(event: React.FormEvent<any>) {
@@ -86,8 +78,9 @@ export class InputForm extends React.Component<InputFormProps, InputFormState> {
         alert(this.input.files[0].name);
     }
 
-    generate(event: React.FormEvent<any>) {
+    generate(event: any) {
         event.preventDefault();
+        this.props.changeRegion(this.state.height, this.state.width);
     }
 
     public render() {
@@ -105,8 +98,10 @@ export class InputForm extends React.Component<InputFormProps, InputFormState> {
                 <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
                       onSubmit={this.addPoint}>
                     <Title text="Point"/>
-                    <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"/>
-                    <InputNumberBox name="Latitude" id="lat" placeholder="Enter latitude"/>
+                    <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
+                                    onChange={e => this.setState({ lng: e.target.value })}/>
+                    <InputNumberBox name="Latitude" id="lat" placeholder="Enter latitude"
+                                    onChange={e => this.setState({ lat: e.target.value })}/>
                     <button type="submit" className="btn btn-primary">
                         Add
                     </button>
@@ -114,8 +109,12 @@ export class InputForm extends React.Component<InputFormProps, InputFormState> {
                 <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
                       onSubmit={this.generate}>
                     <Title text="Query Region"/>
-                    <InputNumberBox name="Height" id="height" min="0" onChange={this.updateHeight}/>
-                    <InputNumberBox name="Width" id="width" min="0" onChange={this.updateWidth}/>
+                    <InputNumberBox name="Height (km)" id="height" min="0"
+                                    placeholder={this.state.height.toString()}
+                                    onChange={e => this.setState({ height: e.target.value })}/>
+                    <InputNumberBox name="Width (km)" id="width" min="0"
+                                    placeholder={this.state.width.toString()}
+                                    onChange={e => this.setState({ width: e.target.value })}/>
                     <button type="submit" className="btn btn-primary">
                         Generate
                     </button>

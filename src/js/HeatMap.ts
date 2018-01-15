@@ -30,7 +30,6 @@ class HeatMap {
 
     public addPoints(points: Array<Point>): void {
         this.points.concat(points);
-        this.tree.load(this.points.map(this.point2query));
     }
 
     public changeQuery(queryHeight: number, queryWidth: number) {

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@google/maps": "^0.4.5",
     "@types/googlemaps": "^3.30.4",
     "@types/jest": "^22.0.1",
     "@types/markerclustererplus": "^2.1.33",

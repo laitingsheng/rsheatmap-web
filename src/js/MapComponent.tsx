@@ -1,26 +1,23 @@
 import * as React from 'react';
-import { GoogleMap, Marker, withGoogleMap, withScriptjs } from 'react-google-maps';
+import { GoogleMap, Marker, withGoogleMap } from 'react-google-maps';
 
 export interface MapProps {
-    markers: Array<google.maps.LatLngLiteral>;
+    markers?: Array<google.maps.LatLngLiteral>;
 }
 
-const MapTag = withScriptjs(withGoogleMap((props: MapProps) => (
+const MapTag = withGoogleMap((props: MapProps) => (
     <GoogleMap
         defaultZoom={4}
         defaultCenter={{ lat: -24.25, lng: 133.417 }}
     >
         {props.markers && props.markers.map(pos => <Marker position={pos}/>)}
     </GoogleMap>
-)));
-
-const url = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDQtrmtYpJjFFCnpv0-3QN0yg3Xr5bmd7s';
+));
 
 export class MapComponent extends React.Component<MapProps> {
     render() {
         return (
-            <MapTag markers={this.props.markers} googleMapURL={url} loadingElement={<div/>}
-                    containerElement={<div/>}
+            <MapTag markers={this.props.markers} containerElement={<div/>}
                     mapElement={<div className="map-canvas"/>}/>
         );
     }
