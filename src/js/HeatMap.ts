@@ -14,7 +14,6 @@ class HeatMap {
     public points: Array<Point>;
     public queryHeight: number;
     public queryWidth: number;
-    public maxWeight: number;
     private tree: rbush.RBush<Region>;
 
     public constructor() {
@@ -32,7 +31,7 @@ class HeatMap {
         this.points.concat(points);
     }
 
-    public changeQuery(queryHeight: number, queryWidth: number) {
+    public changeQuery(queryHeight: number, queryWidth: number): void {
         this.queryHeight = queryHeight;
         this.queryWidth = queryWidth;
 
@@ -40,13 +39,9 @@ class HeatMap {
         this.tree.load(this.points.map(this.point2query));
     }
 
-    public divide(): void {
+    public divide(): number {
         this.points.sort();
-        const w = Math.max(...this.points.map(point => knn(this.tree, point.x, point.y).length));
-        if (this.maxWeight)
-            this.maxWeight = w;
-        else
-            this.maxWeight = Math.max(this.maxWeight, w);
+        return Math.max(...this.points.map(point => knn(this.tree, point.x, point.y).length));
     }
 
     private point2query(point: Point): Region {

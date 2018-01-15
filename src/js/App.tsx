@@ -1,14 +1,20 @@
 import * as React from 'react';
-import InputForm from './Component';
+import InputForm from './WebComponent';
 import MapComponent from './MapComponent';
 import HeatMap from './HeatMap';
 import '../css/Map.css';
 
 const index = new HeatMap();
 
-export class App extends React.Component {
-    constructor(props: any) {
+export interface AppState {
+    maxOverlap: number;
+}
+
+export class App extends React.Component<any, AppState> {
+    public constructor(props: any) {
         super(props);
+
+        this.state = { maxOverlap: 0 };
 
         this.addPoint = this.addPoint.bind(this);
     }
@@ -28,6 +34,7 @@ export class App extends React.Component {
 
     private changeRegion(height: number, width: number): void {
         index.changeQuery(height, width);
+        this.setState({ maxOverlap: index.divide() });
     }
 }
 
