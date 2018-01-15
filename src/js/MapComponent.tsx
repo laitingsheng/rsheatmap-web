@@ -8,7 +8,7 @@ export interface MapProps {
 const MapTag = withGoogleMap((props: MapProps) => (
     <GoogleMap
         defaultZoom={4}
-        defaultCenter={{ lat: -24.25, lng: 133.417 }}
+        defaultCenter={{ lat: -26.25, lng: 133.5 }}
     >
         {props.markers && props.markers.map(pos => <Marker position={pos}/>)}
     </GoogleMap>

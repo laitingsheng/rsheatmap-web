@@ -24,12 +24,10 @@ export class App extends React.Component {
 
     private addPoint(x: number, y: number): void {
         index.addPoint({ x, y });
-        index.points.forEach(p => alert(p.x + ' ' + p.y));
     }
 
     private changeRegion(height: number, width: number): void {
         index.changeQuery(height, width);
-        alert(index.queryHeight + ' ' + index.queryWidth);
     }
 }
 
