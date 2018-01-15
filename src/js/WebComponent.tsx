@@ -8,13 +8,13 @@ interface TitleProps {
     text: string;
 }
 
-class Title extends React.Component<TitleProps, any> {
+class Title extends React.PureComponent<TitleProps> {
     render() {
         return <p className="form-title">{this.props.text}</p>;
     }
 }
 
-class InputNumberBox extends React.Component<React.InputHTMLAttributes<any>, any> {
+class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>, any> {
     render() {
         return (
             <div className="form-group">
@@ -43,7 +43,7 @@ export interface InputFormState {
     lng: number | undefined;
 }
 
-export class InputForm extends React.Component<InputFormProps, InputFormState> {
+export class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
     private input: HTMLInputElement;
 
     public constructor(props: InputFormProps) {

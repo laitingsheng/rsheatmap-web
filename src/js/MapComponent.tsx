@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { GoogleMap, Marker, withGoogleMap } from 'react-google-maps';
+import { Point } from './HeatMap';
 
-export interface MapProps {
+interface MapProps {
     markers?: Array<google.maps.LatLngLiteral>;
 }
 
-const MapTag = withGoogleMap((props: MapProps) => (
+const Map = withGoogleMap((props: MapProps) => (
     <GoogleMap
         defaultZoom={4}
         defaultCenter={{ lat: -26.25, lng: 133.5 }}
@@ -14,12 +15,57 @@ const MapTag = withGoogleMap((props: MapProps) => (
     </GoogleMap>
 ));
 
-export class MapComponent extends React.Component<MapProps> {
+export interface ActionFunction<T> {
+    (): T;
+}
+
+export interface MapComponentProps {
+    points: Array<Point>;
+    updated: boolean;
+    maxOverlap: number;
+    finalise: ActionFunction<void>;
+}
+
+export interface MapComponentState {
+    opacity: number;
+    rectangles: Array<google.maps.Rectangle>;
+}
+
+function point2rectange(point: Point): google.maps.Rectangle {
+    return null;
+}
+
+export class MapComponent extends React.Component<MapComponentProps, MapComponentState> {
+    constructor(props: MapComponentProps) {
+        super(props);
+
+        this.state = {
+            opacity: 1 / props.maxOverlap,
+            rectangles: props.points.map(point2rectange)
+        };
+    }
+
+    componentWillReceiveProps(nextProps: MapComponentProps) {
+        if (nextProps.updated)
+            this.setState({
+                opacity: 1 / nextProps.maxOverlap,
+                rectangles: nextProps.points.map(point2rectange)
+            });
+    }
+
+    shouldComponentUpdate(nextProps: MapComponentProps, nextState: MapComponentState) {
+        return nextProps.updated;
+    }
+
     render() {
         return (
-            <MapTag markers={this.props.markers} containerElement={<div/>}
-                    mapElement={<div className="map-canvas"/>}/>
+            <Map containerElement={<div/>}
+                 mapElement={<div className="map-canvas"/>}/>
         );
+    }
+
+    componentDidUpdate(prevProps: MapComponentProps, prevState: MapComponentState) {
+        this.props.finalise();
     }
 }
 

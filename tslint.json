@@ -120,13 +120,10 @@
     ],
     "whitespace": [
       true,
-      "check-branch",
       "check-decl",
       "check-module",
       "check-operator",
-      "check-separator",
-      "check-type",
-      "check-typecast"
+      "check-separator"
     ]
   }
 }
