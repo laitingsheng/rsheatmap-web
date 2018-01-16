@@ -19,13 +19,17 @@ class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>>
         return (
             <div className="form-group">
                 <label htmlFor={this.props.id}>{this.props.name}</label>
-                <input type="number" min={this.props.min} max={this.props.max} step="0.0001"
+                <input type="number" min={this.props.min} max={this.props.max} step="0.000001"
                        className="form-control" required id={this.props.id}
                        placeholder={this.props.placeholder} value={this.props.value}
                        onChange={this.props.onChange}/>
             </div>
         );
     }
+}
+
+export interface Action {
+    (): void;
 }
 
 export interface BiFunction<T, U, R> {
@@ -35,6 +39,7 @@ export interface BiFunction<T, U, R> {
 export interface InputFormProps {
     changeRegion: BiFunction<number, number, void>;
     addPoint: BiFunction<number, number, void>;
+    clear: Action;
     points: number;
 }
 
@@ -62,6 +67,7 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
         this.resetFiles = this.resetFiles.bind(this);
         this.addPoint = this.addPoint.bind(this);
         this.addPoints = this.addPoints.bind(this);
+        this.resetPoints = this.resetPoints.bind(this);
         this.generate = this.generate.bind(this);
     }
 
@@ -77,6 +83,10 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
     addPoints(event: React.FormEvent<any>) {
         event.preventDefault();
         alert(this.input.files[0].name);
+    }
+
+    resetPoints() {
+        this.props.clear();
     }
 
     generate(event: any) {
@@ -97,7 +107,7 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                     </div>
                 </form>
                 <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
-                      onSubmit={this.addPoint}>
+                      onSubmit={this.addPoint} onReset={this.resetPoints}>
                     <Title text={'Point (Current ' + this.props.points + ')'}/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
                                     onChange={e => this.setState({ lng: e.target.value })}
@@ -107,6 +117,9 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                                     min="-90" max="90"/>
                     <button type="submit" className="btn btn-primary">
                         Add
+                    </button>
+                    <button type="reset" className="btn btn-secondary btn-reset">
+                        Clear
                     </button>
                 </form>
                 <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"

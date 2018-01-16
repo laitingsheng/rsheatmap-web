@@ -76,6 +76,12 @@ export class HeatMap {
         this.points.sort();
         return Math.max(...this.points.map(point => knn(this.tree, point.x, point.y, 0)));
     }
+
+    public clear(): void {
+        this.points = [];
+        this.regions = [];
+        this.tree.clear();
+    }
 }
 
 export default HeatMap;

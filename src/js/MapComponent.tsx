@@ -1,21 +1,37 @@
 import * as React from 'react';
 import { GoogleMap, Marker, Rectangle, withGoogleMap } from 'react-google-maps';
-import { Point, Region } from './HeatMap';
+import { Point, Query } from './HeatMap';
 
 interface MapProps {
-    markers?: Array<Marker>;
-    rectangles?: Array<Rectangle>;
+    points: Array<Point>;
+    query: Query;
+    opacity: number;
 }
 
-const Map = withGoogleMap((props: MapProps) => (
-    <GoogleMap
-        defaultZoom={4}
-        defaultCenter={{ lat: -26.25, lng: 133.5 }}
-    >
-        {props.markers}
-        {props.rectangles}
-    </GoogleMap>
-));
+const Map = withGoogleMap((props: MapProps) => {
+        let coordinates = props.points.map(p => new google.maps.LatLng(p.x, p.y), true);
+        return (
+            <GoogleMap
+                defaultZoom={4}
+                defaultCenter={{ lat: -26.25, lng: 133.5 }}>
+                {coordinates.map(p => {
+                    let bounds = {
+                        north: google.maps.geometry.spherical.computeOffset(p, props.query.height * 1000, 0).lat(),
+                        south: google.maps.geometry.spherical.computeOffset(p, props.query.height * 1000, 180).lat(),
+                        east: google.maps.geometry.spherical.computeOffset(p, props.query.width * 1000, 90).lng(),
+                        west: google.maps.geometry.spherical.computeOffset(p, props.query.width * 1000, 270).lng()
+                    };
+                    return (
+                        <div>
+                            <Marker position={p}/>
+                            <Rectangle bounds={bounds} options={{ fillOpacity: props.opacity }}/>
+                        </div>
+                    );
+                })}
+            </GoogleMap>
+        );
+    })
+;
 
 export interface ActionFunction<T> {
     (): T;
@@ -23,7 +39,7 @@ export interface ActionFunction<T> {
 
 export interface MapComponentProps {
     points: Array<Point>;
-    regions: Array<Region>;
+    query: Query;
     updated: boolean;
     maxOverlap: number;
     finalise: ActionFunction<void>;
@@ -55,7 +71,10 @@ export class MapComponent extends React.Component<MapComponentProps, MapComponen
     }
 
     public render() {
-        return <Map containerElement={<div/>} mapElement={<div className="map-canvas"/>}/>;
+        return (
+            <Map points={this.props.points} query={this.props.query} opacity={this.state.opacity}
+                 containerElement={<div/>} mapElement={<div className="map-canvas"/>}/>
+        );
     }
 
     public componentDidUpdate(prevProps: MapComponentProps, prevState: MapComponentState) {
@@ -64,7 +83,7 @@ export class MapComponent extends React.Component<MapComponentProps, MapComponen
 
     private props2state(props: MapComponentProps) {
         return {
-            opacity: 1 / props.maxOverlap,
+            opacity: 0.6 / props.maxOverlap,
             rectangles: props.points.map(point2rectangle)
         };
     }

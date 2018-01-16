@@ -24,3 +24,13 @@
 .form-title {
     font-size: larger;
 }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.btn-reset {
+    margin-left: 0.25rem;
+}
