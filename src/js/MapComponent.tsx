@@ -16,10 +16,14 @@ const Map = withGoogleMap((props: MapProps) => {
                 defaultCenter={{ lat: -26.25, lng: 133.5 }}>
                 {coordinates.map(p => {
                     let bounds = {
-                        north: google.maps.geometry.spherical.computeOffset(p, props.query.height * 1000, 0).lat(),
-                        south: google.maps.geometry.spherical.computeOffset(p, props.query.height * 1000, 180).lat(),
-                        east: google.maps.geometry.spherical.computeOffset(p, props.query.width * 1000, 90).lng(),
-                        west: google.maps.geometry.spherical.computeOffset(p, props.query.width * 1000, 270).lng()
+                        north: google.maps.geometry.spherical
+                                     .computeOffset(p, props.query.height * 1000, 0).lat(),
+                        south: google.maps.geometry.spherical
+                                     .computeOffset(p, props.query.height * 1000, 180).lat(),
+                        east: google.maps.geometry.spherical
+                                    .computeOffset(p, props.query.width * 1000, 90).lng(),
+                        west: google.maps.geometry.spherical
+                                    .computeOffset(p, props.query.width * 1000, 270).lng()
                     };
                     return (
                         <div>
