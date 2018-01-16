@@ -14,7 +14,7 @@ class Title extends React.PureComponent<TitleProps> {
     }
 }
 
-class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>, any> {
+class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>> {
     render() {
         return (
             <div className="form-group">
@@ -34,6 +34,7 @@ export interface BiFunction<T, U, R> {
 export interface InputFormProps {
     changeRegion: BiFunction<number, number, void>;
     addPoint: BiFunction<number, number, void>;
+    points: number;
 }
 
 export interface InputFormState {
@@ -96,7 +97,7 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                 </form>
                 <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
                       onSubmit={this.addPoint}>
-                    <Title text="Point"/>
+                    <Title text={'Point (Current ' + this.props.points + ')'}/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
                                     onChange={e => this.setState({ lng: e.target.value })}/>
                     <InputNumberBox name="Latitude" id="lat" placeholder="Enter latitude"

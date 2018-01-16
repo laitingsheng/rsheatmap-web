@@ -32,7 +32,8 @@ export class App extends React.Component<AppProps, AppState> {
     public render() {
         return (
             <div>
-                <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}/>
+                <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
+                           points={index.size}/>
                 <MapComponent points={index.points} updated={this.state.updated}
                               maxOverlap={this.state.maxOverlap} finalise={this.finaliseUpdate}/>
             </div>

@@ -29,12 +29,8 @@ export class HeatMap {
     private point2region: Function<Point, Region>;
     private tree: rbush;
 
-    public constructor() {
-        this.tree = new rbush();
-        this.points = [];
-        this.query = { height: 100, width: 100 };
-
-        this.point2region = HeatMap.__point2region.bind(this, this.query);
+    public get size(): number {
+        return this.points.length;
     }
 
     private static __point2region(query: Query, point: Point): Region {
@@ -42,6 +38,14 @@ export class HeatMap {
             minX: point.x - query.width, minY: point.y - query.height,
             maxX: point.x + query.width, maxY: point.y + query.height, point
         };
+    }
+
+    public constructor() {
+        this.tree = new rbush();
+        this.points = [];
+        this.query = { height: 100, width: 100 };
+
+        this.point2region = HeatMap.__point2region.bind(this, this.query);
     }
 
     public addPoint(point: Point): void {
