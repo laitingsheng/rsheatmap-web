@@ -1,56 +1,71 @@
-import * as rbush from 'rbush';
-import knn from 'rbush-knn';
+import rbush from 'rbush';
+import knn from './rbush-knn';
 
-interface Point {
+export interface Point {
     x: number;
     y: number;
 }
 
-interface Region extends rbush.BBox {
+export interface Region extends rbush.BBox {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
     point: Point;
 }
 
-class HeatMap {
+export interface Query {
+    height: number;
+    width: number;
+}
+
+interface Function<T, R> {
+    (t: T): R;
+}
+
+export class HeatMap {
     public points: Array<Point>;
-    public queryHeight: number;
-    public queryWidth: number;
-    private tree: rbush.RBush<Region>;
+    public query: Query;
+    private point2region: Function<Point, Region>;
+    private tree: rbush;
 
     public constructor() {
-        this.tree = rbush<Region>();
+        this.tree = new rbush();
         this.points = [];
-        this.queryHeight = this.queryWidth = 100;
+        this.query = { height: 100, width: 100 };
+
+        this.point2region = HeatMap.__point2region.bind(this, this.query);
+    }
+
+    private static __point2region(query: Query, point: Point): Region {
+        return {
+            minX: point.x - query.width, minY: point.y - query.height,
+            maxX: point.x + query.width, maxY: point.y + query.height, point
+        };
     }
 
     public addPoint(point: Point): void {
         this.points.push(point);
-        this.tree.insert(this.point2query(point));
+        this.tree.insert(this.point2region(point));
     }
 
     public addPoints(points: Array<Point>): void {
         this.points.concat(points);
+        this.tree.load(points.map(this.point2region));
     }
 
     public changeQuery(queryHeight: number, queryWidth: number): void {
-        this.queryHeight = queryHeight;
-        this.queryWidth = queryWidth;
+        this.query.height = queryHeight;
+        this.query.width = queryWidth;
 
-        this.tree = rbush();
-        this.tree.load(this.points.map(this.point2query));
+        this.tree = new rbush();
+        this.tree.load(this.points.map(this.point2region));
     }
 
     public divide(): number {
         this.points.sort();
-        return Math.max(...this.points.map(point => knn(this.tree, point.x, point.y).length));
-    }
-
-    private point2query(point: Point): Region {
-        return {
-            minX: point.x - this.queryWidth, minY: point.y - this.queryHeight,
-            maxX: point.x + this.queryWidth, maxY: point.y + this.queryHeight, point
-        };
+        return Math.max(...this.points.map(point => knn(this.tree, point.x, point.y, 0)));
     }
 }
 
-export { Point, Region, HeatMap };
 export default HeatMap;

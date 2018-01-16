@@ -40,12 +40,12 @@ export class App extends React.Component<AppProps, AppState> {
     }
 
     private addPoint(x: number, y: number): void {
-        index.addPoint({ x, y });
+        index.addPoint({ x: Number(x), y: Number(y) });
         this.setState({ updated: true });
     }
 
     private changeRegion(height: number, width: number): void {
-        index.changeQuery(height, width);
+        index.changeQuery(Number(height), Number(width));
         this.setState({ maxOverlap: index.divide(), updated: true });
     }
 

@@ -70,7 +70,6 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
     addPoint(event: React.FormEvent<any>) {
         event.preventDefault();
         this.props.addPoint(this.state.lat, this.state.lng);
-        this.setState({ lat: undefined, lng: undefined });
     }
 
     addPoints(event: React.FormEvent<any>) {

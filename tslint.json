@@ -22,10 +22,7 @@
       true,
       "spaces"
     ],
-    "interface-name": [
-      true,
-      "never-prefix"
-    ],
+    "interface-name": false,
     "jsdoc-format": true,
     "jsx-alignment": false,
     "jsx-no-lambda": false,
