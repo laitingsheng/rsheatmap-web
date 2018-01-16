@@ -19,9 +19,10 @@ class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>>
         return (
             <div className="form-group">
                 <label htmlFor={this.props.id}>{this.props.name}</label>
-                <input type="number" min={this.props.min} step="0.001" className="form-control"
-                       required id={this.props.id} placeholder={this.props.placeholder}
-                       value={this.props.value} onChange={this.props.onChange}/>
+                <input type="number" min={this.props.min} max={this.props.max} step="0.0001"
+                       className="form-control" required id={this.props.id}
+                       placeholder={this.props.placeholder} value={this.props.value}
+                       onChange={this.props.onChange}/>
             </div>
         );
     }
@@ -70,7 +71,7 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
 
     addPoint(event: React.FormEvent<any>) {
         event.preventDefault();
-        this.props.addPoint(this.state.lat, this.state.lng);
+        this.props.addPoint(Number(this.state.lat), Number(this.state.lng));
     }
 
     addPoints(event: React.FormEvent<any>) {
@@ -80,7 +81,7 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
 
     generate(event: any) {
         event.preventDefault();
-        this.props.changeRegion(this.state.height, this.state.width);
+        this.props.changeRegion(Number(this.state.height), Number(this.state.width));
     }
 
     public render() {
@@ -99,9 +100,11 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                       onSubmit={this.addPoint}>
                     <Title text={'Point (Current ' + this.props.points + ')'}/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
-                                    onChange={e => this.setState({ lng: e.target.value })}/>
+                                    onChange={e => this.setState({ lng: e.target.value })}
+                                    min="-180" max="180"/>
                     <InputNumberBox name="Latitude" id="lat" placeholder="Enter latitude"
-                                    onChange={e => this.setState({ lat: e.target.value })}/>
+                                    onChange={e => this.setState({ lat: e.target.value })}
+                                    min="-90" max="90"/>
                     <button type="submit" className="btn btn-primary">
                         Add
                     </button>

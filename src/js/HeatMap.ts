@@ -6,12 +6,11 @@ export interface Point {
     y: number;
 }
 
-export interface Region extends rbush.BBox {
+export interface Region {
     minX: number;
     minY: number;
     maxX: number;
     maxY: number;
-    point: Point;
 }
 
 export interface Query {
@@ -25,6 +24,7 @@ interface Function<T, R> {
 
 export class HeatMap {
     public points: Array<Point>;
+    public regions: Array<Region>;
     public query: Query;
     private point2region: Function<Point, Region>;
     private tree: rbush;
@@ -36,13 +36,14 @@ export class HeatMap {
     private static __point2region(query: Query, point: Point): Region {
         return {
             minX: point.x - query.width, minY: point.y - query.height,
-            maxX: point.x + query.width, maxY: point.y + query.height, point
+            maxX: point.x + query.width, maxY: point.y + query.height
         };
     }
 
     public constructor() {
         this.tree = new rbush();
         this.points = [];
+        this.regions = [];
         this.query = { height: 100, width: 100 };
 
         this.point2region = HeatMap.__point2region.bind(this, this.query);
@@ -50,12 +51,16 @@ export class HeatMap {
 
     public addPoint(point: Point): void {
         this.points.push(point);
-        this.tree.insert(this.point2region(point));
+        let region = this.point2region(point);
+        this.regions.push(region);
+        this.tree.insert(region);
     }
 
     public addPoints(points: Array<Point>): void {
         this.points.concat(points);
-        this.tree.load(points.map(this.point2region));
+        let regions = points.map(this.point2region);
+        this.regions.concat(regions);
+        this.tree.load(regions);
     }
 
     public changeQuery(queryHeight: number, queryWidth: number): void {
@@ -63,7 +68,8 @@ export class HeatMap {
         this.query.width = queryWidth;
 
         this.tree = new rbush();
-        this.tree.load(this.points.map(this.point2region));
+        this.regions = this.points.map(this.point2region);
+        this.tree.load(this.regions);
     }
 
     public divide(): number {

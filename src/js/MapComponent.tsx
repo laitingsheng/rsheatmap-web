@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { GoogleMap, Marker, withGoogleMap } from 'react-google-maps';
-import { Point } from './HeatMap';
+import { GoogleMap, Marker, Rectangle, withGoogleMap } from 'react-google-maps';
+import { Point, Region } from './HeatMap';
 
 interface MapProps {
-    markers?: Array<google.maps.LatLngLiteral>;
+    markers?: Array<Marker>;
+    rectangles?: Array<Rectangle>;
 }
 
 const Map = withGoogleMap((props: MapProps) => (
@@ -11,7 +12,8 @@ const Map = withGoogleMap((props: MapProps) => (
         defaultZoom={4}
         defaultCenter={{ lat: -26.25, lng: 133.5 }}
     >
-        {props.markers && props.markers.map(pos => <Marker position={pos}/>)}
+        {props.markers}
+        {props.rectangles}
     </GoogleMap>
 ));
 
@@ -21,6 +23,7 @@ export interface ActionFunction<T> {
 
 export interface MapComponentProps {
     points: Array<Point>;
+    regions: Array<Region>;
     updated: boolean;
     maxOverlap: number;
     finalise: ActionFunction<void>;
@@ -31,41 +34,39 @@ export interface MapComponentState {
     rectangles: Array<google.maps.Rectangle>;
 }
 
-function point2rectange(point: Point): google.maps.Rectangle {
+function point2rectangle(point: Point): google.maps.Rectangle {
     return null;
 }
 
 export class MapComponent extends React.Component<MapComponentProps, MapComponentState> {
-    constructor(props: MapComponentProps) {
+    public constructor(props: MapComponentProps) {
         super(props);
 
-        this.state = {
-            opacity: 1 / props.maxOverlap,
-            rectangles: props.points.map(point2rectange)
-        };
+        this.state = this.props2state(props);
     }
 
-    componentWillReceiveProps(nextProps: MapComponentProps) {
+    public componentWillReceiveProps(nextProps: MapComponentProps) {
         if (nextProps.updated)
-            this.setState({
-                opacity: 1 / nextProps.maxOverlap,
-                rectangles: nextProps.points.map(point2rectange)
-            });
+            this.setState(this.props2state(nextProps));
     }
 
-    shouldComponentUpdate(nextProps: MapComponentProps, nextState: MapComponentState) {
+    public shouldComponentUpdate(nextProps: MapComponentProps, nextState: MapComponentState) {
         return nextProps.updated;
     }
 
-    render() {
-        return (
-            <Map containerElement={<div/>}
-                 mapElement={<div className="map-canvas"/>}/>
-        );
+    public render() {
+        return <Map containerElement={<div/>} mapElement={<div className="map-canvas"/>}/>;
     }
 
-    componentDidUpdate(prevProps: MapComponentProps, prevState: MapComponentState) {
+    public componentDidUpdate(prevProps: MapComponentProps, prevState: MapComponentState) {
         this.props.finalise();
+    }
+
+    private props2state(props: MapComponentProps) {
+        return {
+            opacity: 1 / props.maxOverlap,
+            rectangles: props.points.map(point2rectangle)
+        };
     }
 }
 

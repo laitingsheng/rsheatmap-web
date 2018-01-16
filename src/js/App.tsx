@@ -34,19 +34,20 @@ export class App extends React.Component<AppProps, AppState> {
             <div>
                 <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
                            points={index.size}/>
-                <MapComponent points={index.points} updated={this.state.updated}
-                              maxOverlap={this.state.maxOverlap} finalise={this.finaliseUpdate}/>
+                <MapComponent points={index.points} regions={index.regions}
+                              updated={this.state.updated} maxOverlap={this.state.maxOverlap}
+                              finalise={this.finaliseUpdate}/>
             </div>
         );
     }
 
     private addPoint(x: number, y: number): void {
-        index.addPoint({ x: Number(x), y: Number(y) });
-        this.setState({ updated: true });
+        index.addPoint({ x, y });
+        this.setState({ maxOverlap: index.divide(), updated: true });
     }
 
     private changeRegion(height: number, width: number): void {
-        index.changeQuery(Number(height), Number(width));
+        index.changeQuery(height, width);
         this.setState({ maxOverlap: index.divide(), updated: true });
     }
 
