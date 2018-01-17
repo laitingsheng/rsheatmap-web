@@ -1,5 +1,6 @@
 import rbush from 'rbush';
 import knn from './rbush-knn';
+import { UnaryFunction } from './Functions';
 
 export interface Point {
     x: number;
@@ -18,15 +19,11 @@ export interface Query {
     width: number;
 }
 
-interface Function<T, R> {
-    (t: T): R;
-}
-
 export class HeatMap {
     public points: Array<Point>;
     public regions: Array<Region>;
     public query: Query;
-    private point2region: Function<Point, Region>;
+    private point2region: UnaryFunction<Point, Region>;
     private tree: rbush;
 
     public get size(): number {

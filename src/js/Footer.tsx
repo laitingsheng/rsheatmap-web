@@ -2,14 +2,18 @@ import * as React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/App.css';
 
+export interface FooterProps {
+    count: number;
+}
+
 export interface FooterState {
     date: Date;
 }
 
-export class Footer extends React.PureComponent<{}, FooterState> {
+export class Footer extends React.PureComponent<FooterProps, FooterState> {
     private timerID: NodeJS.Timer;
 
-    public constructor(props: {}) {
+    public constructor(props: FooterProps) {
         super(props);
         this.state = { date: new Date() };
 
@@ -29,11 +33,15 @@ export class Footer extends React.PureComponent<{}, FooterState> {
 
     public render() {
         return (
-            <div className="container">
-                <span className="text-muted">
-                    App created by Tinson. Current time is {this.state.date.toLocaleTimeString()}
-                </span>
-            </div>
+            <footer className="footer">
+                <div className="container">
+                    <span className="text-muted">
+                    App created by Tinson.
+                    Current time is {this.state.date.toLocaleTimeString()}.
+                    Currently {this.props.count} points entered.
+                    </span>
+                </div>
+            </footer>
         );
     }
 

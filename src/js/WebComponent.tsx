@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Action, BiFunction } from './Functions';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-fileinput/js/fileinput.min';
 import 'bootstrap-fileinput/css/fileinput.min.css';
@@ -28,18 +29,10 @@ class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>>
     }
 }
 
-export interface Action {
-    (): void;
-}
-
-export interface BiFunction<T, U, R> {
-    (l: T, r: U): R;
-}
-
 export interface InputFormProps {
     changeRegion: BiFunction<number, number, void>;
     addPoint: BiFunction<number, number, void>;
-    clear: Action;
+    clear: Action<void>;
     points: number;
 }
 
@@ -108,7 +101,7 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                 </form>
                 <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
                       onSubmit={this.addPoint} onReset={this.resetPoints}>
-                    <Title text={'Point (Current ' + this.props.points + ')'}/>
+                    <Title text="Point"/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
                                     onChange={e => this.setState({ lng: e.target.value })}
                                     min="-180" max="180"/>
