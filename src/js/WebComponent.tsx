@@ -1,8 +1,6 @@
 import * as React from 'react';
+import { Button, ControlLabel, Form, FormControl, FormGroup } from 'react-bootstrap';
 import { Action, BiFunction } from './Functions';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-fileinput/js/fileinput.min';
-import 'bootstrap-fileinput/css/fileinput.min.css';
 import '../css/Component.css';
 
 interface TitleProps {
@@ -18,13 +16,13 @@ class Title extends React.PureComponent<TitleProps> {
 class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>> {
     render() {
         return (
-            <div className="form-group">
-                <label htmlFor={this.props.id}>{this.props.name}</label>
-                <input type="number" min={this.props.min} max={this.props.max} step="0.000001"
-                       className="form-control" required id={this.props.id}
-                       placeholder={this.props.placeholder} value={this.props.value}
-                       onChange={this.props.onChange}/>
-            </div>
+            <FormGroup controlId={this.props.id}>
+                <ControlLabel>{this.props.name}</ControlLabel>
+                <FormControl type="number" min={this.props.min} max={this.props.max}
+                             step="0.000001" className="form-control" required id={this.props.id}
+                             placeholder={this.props.placeholder} value={this.props.value}
+                             onChange={this.props.onChange}/>
+            </FormGroup>
         );
     }
 }
@@ -90,16 +88,16 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
     public render() {
         return (
             <div className="wrap-box">
-                <form encType="multipart/form-data" className="wrap-full-box"
-                      onSubmit={this.addPoints}
-                      onReset={this.resetFiles}>
+                {false && <form encType="multipart/form-data" className="wrap-full-box"
+                                onSubmit={this.addPoints}
+                                onReset={this.resetFiles}>
                     <Title text="File Input"/>
                     <div className="file-loading">
                         <input type="file" className="file" id="data_files" accept=".txt" multiple
                                ref={input => this.input = input}/>
                     </div>
-                </form>
-                <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
+                </form>}
+                <Form horizontal className="wrap-full-box wrap-inner-box"
                       onSubmit={this.addPoint} onReset={this.resetPoints}>
                     <Title text="Point"/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
@@ -108,15 +106,14 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                     <InputNumberBox name="Latitude" id="lat" placeholder="Enter latitude"
                                     onChange={e => this.setState({ lat: e.target.value })}
                                     min="-90" max="90"/>
-                    <button type="submit" className="btn btn-primary">
+                    <Button bsStyle="primary" type="submit">
                         Add
-                    </button>
-                    <button type="reset" className="btn btn-secondary btn-reset">
+                    </Button>
+                    <Button bsStyle="secondary" type="reset" className="btn-reset">
                         Clear
-                    </button>
-                </form>
-                <form encType="multipart/form-data" className="wrap-full-box wrap-inner-box"
-                      onSubmit={this.generate}>
+                    </Button>
+                </Form>
+                <Form horizontal className="wrap-full-box wrap-inner-box" onSubmit={this.generate}>
                     <Title text="Query Region"/>
                     <InputNumberBox name="Height (km)" id="height" min="0"
                                     placeholder={this.state.height.toString()}
@@ -124,10 +121,10 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                     <InputNumberBox name="Width (km)" id="width" min="0"
                                     placeholder={this.state.width.toString()}
                                     onChange={e => this.setState({ width: e.target.value })}/>
-                    <button type="submit" className="btn btn-primary">
+                    <Button bsStyle="primary" type="submit">
                         Generate
-                    </button>
-                </form>
+                    </Button>
+                </Form>
             </div>
         );
     }

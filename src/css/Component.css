@@ -4,7 +4,6 @@
 }
 
 .wrap-box {
-    padding-top: 0.5rem;
     display: flex;
     flex-wrap: wrap;
 }
