@@ -34,8 +34,7 @@ const Map = withGoogleMap((props: MapProps) => {
                 })}
             </GoogleMap>
         );
-    })
-;
+});
 
 export interface ActionFunction<T> {
     (): T;
