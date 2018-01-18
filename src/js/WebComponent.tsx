@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Button, ControlLabel, Form, FormControl, FormGroup } from 'react-bootstrap';
 import { Action, BiFunction } from './Functions';
 import '../css/Component.css';
 
@@ -16,13 +15,13 @@ class Title extends React.PureComponent<TitleProps> {
 class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>> {
     render() {
         return (
-            <FormGroup controlId={this.props.id}>
-                <ControlLabel>{this.props.name}</ControlLabel>
-                <FormControl type="number" min={this.props.min} max={this.props.max}
-                             step="0.000001" className="form-control" required id={this.props.id}
-                             placeholder={this.props.placeholder} value={this.props.value}
-                             onChange={this.props.onChange}/>
-            </FormGroup>
+            <div className="form-group">
+                <label htmlFor={this.props.id}>{this.props.name}</label>
+                <input type="number" min={this.props.min} max={this.props.max} step="0.000001"
+                       className="form-control" required id={this.props.id}
+                       placeholder={this.props.placeholder} value={this.props.value}
+                       onChange={this.props.onChange}/>
+            </div>
         );
     }
 }
@@ -88,7 +87,7 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
     public render() {
         return (
             <div className="wrap-box">
-                <Form horizontal className="wrap-full-box wrap-inner-box"
+                <form className="wrap-full-box wrap-inner-box"
                       onSubmit={this.addPoint} onReset={this.resetPoints}>
                     <Title text="Point"/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
@@ -97,14 +96,14 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                     <InputNumberBox name="Latitude" id="lat" placeholder="Enter latitude"
                                     onChange={e => this.setState({ lat: e.target.value })}
                                     min="-90" max="90"/>
-                    <Button bsStyle="primary" type="submit">
+                    <button type="submit" className="btn btn-primary">
                         Add
-                    </Button>
-                    <Button bsStyle="secondary" type="reset" className="btn-reset">
+                    </button>
+                    <button type="reset" className="btn btn-secondary btn-reset">
                         Clear
-                    </Button>
-                </Form>
-                <Form horizontal className="wrap-full-box wrap-inner-box" onSubmit={this.generate}>
+                    </button>
+                </form>
+                <form className="wrap-full-box wrap-inner-box" onSubmit={this.generate}>
                     <Title text="Query Region"/>
                     <InputNumberBox name="Height (km)" id="height" min="0"
                                     placeholder={this.state.height.toString()}
@@ -112,10 +111,10 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
                     <InputNumberBox name="Width (km)" id="width" min="0"
                                     placeholder={this.state.width.toString()}
                                     onChange={e => this.setState({ width: e.target.value })}/>
-                    <Button bsStyle="primary" type="submit">
-                        Generate
-                    </Button>
-                </Form>
+                    <button type="submit" className="btn btn-primary">
+                        Update
+                    </button>
+                </form>
             </div>
         );
     }
