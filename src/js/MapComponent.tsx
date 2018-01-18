@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { GoogleMap, Marker, Rectangle, withGoogleMap } from 'react-google-maps';
 import { Point, Query } from './HeatMap';
+import { Action } from './Functions';
 
 interface MapProps {
     points: Array<Point>;
@@ -13,7 +14,7 @@ const Map = withGoogleMap((props: MapProps) => {
         return (
             <GoogleMap
                 defaultZoom={4}
-                defaultCenter={{ lat: -26.25, lng: 133.5 }}>
+                defaultCenter={{ lat: -24.25, lng: 133.416667 }}>
                 {coordinates.map(p => {
                     let bounds = {
                         north: google.maps.geometry.spherical
@@ -26,26 +27,25 @@ const Map = withGoogleMap((props: MapProps) => {
                                     .computeOffset(p, props.query.width * 1000, 270).lng()
                     };
                     return (
-                        <div>
+                        <>
                             <Marker position={p}/>
-                            <Rectangle bounds={bounds} options={{ fillOpacity: props.opacity }}/>
-                        </div>
+                            <Rectangle bounds={bounds} options={{
+                                fillOpacity: props.opacity,
+                                strokeOpacity: 0
+                            }}/>
+                        </>
                     );
                 })}
             </GoogleMap>
         );
 });
 
-export interface ActionFunction<T> {
-    (): T;
-}
-
 export interface MapComponentProps {
     points: Array<Point>;
     query: Query;
     updated: boolean;
     maxOverlap: number;
-    finalise: ActionFunction<void>;
+    finalise: Action<void>;
 }
 
 export interface MapComponentState {

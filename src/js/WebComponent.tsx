@@ -88,15 +88,6 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
     public render() {
         return (
             <div className="wrap-box">
-                {false && <form encType="multipart/form-data" className="wrap-full-box"
-                                onSubmit={this.addPoints}
-                                onReset={this.resetFiles}>
-                    <Title text="File Input"/>
-                    <div className="file-loading">
-                        <input type="file" className="file" id="data_files" accept=".txt" multiple
-                               ref={input => this.input = input}/>
-                    </div>
-                </form>}
                 <Form horizontal className="wrap-full-box wrap-inner-box"
                       onSubmit={this.addPoint} onReset={this.resetPoints}>
                     <Title text="Point"/>
