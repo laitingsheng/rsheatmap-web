@@ -12,29 +12,29 @@ interface MapProps {
 const Map = withGoogleMap((props: MapProps) => {
     let coordinates = props.points.map(p => new google.maps.LatLng(p.x, p.y), true),
         compute = google.maps.geometry.spherical.computeOffset;
-        return (
-            <GoogleMap
-                defaultZoom={4}
-                defaultCenter={{ lat: -24.25, lng: 133.416667 }}>
-                {coordinates.map(p => {
-                    let bounds = {
-                        north: compute(p, props.query.height * 1000, 0).lat(),
-                        south: compute(p, props.query.height * 1000, 180).lat(),
-                        east: compute(p, props.query.width * 1000, 90).lng(),
-                        west: compute(p, props.query.width * 1000, 270).lng()
-                    };
-                    return (
-                        <>
-                            <Marker position={p}/>
-                            <Rectangle bounds={bounds} options={{
-                                fillOpacity: props.opacity,
-                                strokeOpacity: 0
-                            }}/>
-                        </>
-                    );
-                })}
-            </GoogleMap>
-        );
+    return (
+        <GoogleMap
+            defaultZoom={4}
+            defaultCenter={{ lat: -24.25, lng: 133.416667 }}>
+            {coordinates.map(p => {
+                let bounds = {
+                    north: compute(p, props.query.height * 1000, 0).lat(),
+                    south: compute(p, props.query.height * 1000, 180).lat(),
+                    east: compute(p, props.query.width * 1000, 90).lng(),
+                    west: compute(p, props.query.width * 1000, 270).lng()
+                };
+                return (
+                    <>
+                        <Marker position={p}/>
+                        <Rectangle bounds={bounds} options={{
+                            fillOpacity: props.opacity,
+                            strokeOpacity: 0
+                        }}/>
+                    </>
+                );
+            })}
+        </GoogleMap>
+    );
 });
 
 export interface MapComponentProps {
