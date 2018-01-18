@@ -10,21 +10,18 @@ interface MapProps {
 }
 
 const Map = withGoogleMap((props: MapProps) => {
-        let coordinates = props.points.map(p => new google.maps.LatLng(p.x, p.y), true);
+    let coordinates = props.points.map(p => new google.maps.LatLng(p.x, p.y), true),
+        compute = google.maps.geometry.spherical.computeOffset;
         return (
             <GoogleMap
                 defaultZoom={4}
                 defaultCenter={{ lat: -24.25, lng: 133.416667 }}>
                 {coordinates.map(p => {
                     let bounds = {
-                        north: google.maps.geometry.spherical
-                                     .computeOffset(p, props.query.height * 1000, 0).lat(),
-                        south: google.maps.geometry.spherical
-                                     .computeOffset(p, props.query.height * 1000, 180).lat(),
-                        east: google.maps.geometry.spherical
-                                    .computeOffset(p, props.query.width * 1000, 90).lng(),
-                        west: google.maps.geometry.spherical
-                                    .computeOffset(p, props.query.width * 1000, 270).lng()
+                        north: compute(p, props.query.height * 1000, 0).lat(),
+                        south: compute(p, props.query.height * 1000, 180).lat(),
+                        east: compute(p, props.query.width * 1000, 90).lng(),
+                        west: compute(p, props.query.width * 1000, 270).lng()
                     };
                     return (
                         <>
@@ -50,23 +47,18 @@ export interface MapComponentProps {
 
 export interface MapComponentState {
     opacity: number;
-    rectangles: Array<google.maps.Rectangle>;
-}
-
-function point2rectangle(point: Point): google.maps.Rectangle {
-    return null;
 }
 
 export class MapComponent extends React.Component<MapComponentProps, MapComponentState> {
     public constructor(props: MapComponentProps) {
         super(props);
 
-        this.state = this.props2state(props);
+        this.state = { opacity: 0.6 / props.maxOverlap };
     }
 
     public componentWillReceiveProps(nextProps: MapComponentProps) {
         if (nextProps.updated)
-            this.setState(this.props2state(nextProps));
+            this.setState({ opacity: 0.6 / nextProps.maxOverlap });
     }
 
     public shouldComponentUpdate(nextProps: MapComponentProps, nextState: MapComponentState) {
@@ -82,13 +74,6 @@ export class MapComponent extends React.Component<MapComponentProps, MapComponen
 
     public componentDidUpdate(prevProps: MapComponentProps, prevState: MapComponentState) {
         this.props.finalise();
-    }
-
-    private props2state(props: MapComponentProps) {
-        return {
-            opacity: 0.6 / props.maxOverlap,
-            rectangles: props.points.map(point2rectangle)
-        };
     }
 }
 

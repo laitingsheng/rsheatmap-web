@@ -2,7 +2,7 @@ import * as React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/App.css';
 
-class Header extends React.Component {
+class Header extends React.Component<{}, {}> {
     render() {
         return (
             <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
