@@ -5,10 +5,8 @@
   "dependencies": {
     "@google/maps": "^0.4.5",
     "@types/bootstrap": "^3.3.36",
-    "@types/googlemaps": "^3.30.4",
     "@types/jest": "^22.0.1",
     "@types/jquery": "^3.2.18",
-    "@types/markerclustererplus": "^2.1.33",
     "@types/node": "^9.3.0",
     "@types/react": "^16.0.34",
     "@types/react-bootstrap": "^0.31.9",
@@ -24,7 +22,6 @@
     "rbush": "^2.0.2",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "react-google-maps": "^9.4.5",
     "react-router": "^4.2.0",
     "react-router-bootstrap": "^0.24.4",
     "react-router-config": "^1.0.0-beta.4",

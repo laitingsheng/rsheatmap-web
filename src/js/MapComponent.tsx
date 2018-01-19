@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { GoogleMap, Marker, Rectangle, withGoogleMap } from 'react-google-maps';
 import { Point, Query } from './HeatMap';
 import { Action } from './Functions';
 
