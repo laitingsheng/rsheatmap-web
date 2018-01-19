@@ -13,7 +13,7 @@ OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 
-Rewrite in TypeScript with minor changes by Tinson
+Originally from package rbush-knn. Rewrite in TypeScript with minor changes by Tinson
  */
 
 'use strict';

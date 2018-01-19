@@ -1,9 +1,18 @@
 import rbush from 'rbush';
 import knn from './rbush-knn';
 
-export interface Point {
+export class Point {
     x: number;
     y: number;
+
+    public constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public toString() {
+        return `${this.x} ${this.y}`;
+    }
 }
 
 interface Region {
