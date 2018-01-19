@@ -26,28 +26,28 @@ export function knn(tree: rbush, x: number, y: number, maxDistance: number,
     let node = tree.data, result = 0;
     const queue = new tinyqueue(null, compareDist);
 
-    while (node) {
-        for (let i = 0; i < node.children.length; i++) {
+    while(node) {
+        for(let i = 0; i < node.children.length; i++) {
             let child = node.children[i];
             let dist = boxDist(x, y, child);
-            if (dist <= maxDistance) {
+            if(dist <= maxDistance) {
                 queue.push({
-                    node: child,
-                    isItem: node.leaf,
-                    dist: dist
-                });
+                               node: child,
+                               isItem: node.leaf,
+                               dist: dist
+                           });
             }
         }
 
-        while (queue.length && queue.peek().isItem) {
+        while(queue.length && queue.peek().isItem) {
             queue.pop();
             result += 1;
-            if (n && result === n)
+            if(n && result === n)
                 return result;
         }
 
         node = queue.pop();
-        if (node)
+        if(node)
             node = node.node;
     }
 

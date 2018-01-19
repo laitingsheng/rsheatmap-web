@@ -2,9 +2,18 @@ import rbush from 'rbush';
 import knn from './rbush-knn';
 import { UnaryFunction } from './Functions';
 
-export interface Point {
+export class Point {
     x: number;
     y: number;
+
+    public constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public toString() {
+        return `${this.x} ${this.y}`;
+    }
 }
 
 export interface Region {
@@ -21,7 +30,6 @@ export interface Query {
 
 export class HeatMap {
     public points: Array<Point>;
-    public regions: Array<Region>;
     public query: Query;
     private point2region: UnaryFunction<Point, Region>;
     private tree: rbush;
@@ -40,7 +48,6 @@ export class HeatMap {
     public constructor() {
         this.tree = new rbush();
         this.points = [];
-        this.regions = [];
         this.query = { height: 100, width: 100 };
 
         this.point2region = HeatMap.__point2region.bind(this, this.query);
@@ -48,16 +55,12 @@ export class HeatMap {
 
     public addPoint(point: Point): void {
         this.points.push(point);
-        let region = this.point2region(point);
-        this.regions.push(region);
-        this.tree.insert(region);
+        this.tree.insert(this.point2region(point));
     }
 
     public addPoints(points: Array<Point>): void {
         this.points.concat(points);
-        let regions = points.map(this.point2region);
-        this.regions.concat(regions);
-        this.tree.load(regions);
+        this.tree.load(points.map(this.point2region));
     }
 
     public changeQuery(queryHeight: number, queryWidth: number): void {
@@ -65,8 +68,7 @@ export class HeatMap {
         this.query.width = queryWidth;
 
         this.tree = new rbush();
-        this.regions = this.points.map(this.point2region);
-        this.tree.load(this.regions);
+        this.tree.load(this.points.map(this.point2region));
     }
 
     public divide(): number {
@@ -76,7 +78,6 @@ export class HeatMap {
 
     public clear(): void {
         this.points = [];
-        this.regions = [];
         this.tree.clear();
     }
 }

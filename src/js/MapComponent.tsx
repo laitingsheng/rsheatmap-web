@@ -1,40 +1,7 @@
 import * as React from 'react';
+import { findDOMNode } from 'react-dom';
 import { Point, Query } from './HeatMap';
 import { Action } from './Functions';
-
-interface MapProps {
-    points: Array<Point>;
-    query: Query;
-    opacity: number;
-}
-
-const Map = withGoogleMap((props: MapProps) => {
-    let coordinates = props.points.map(p => new google.maps.LatLng(p.x, p.y), true),
-        compute = google.maps.geometry.spherical.computeOffset;
-    return (
-        <GoogleMap
-            defaultZoom={4}
-            defaultCenter={{ lat: -24.25, lng: 133.416667 }}>
-            {coordinates.map(p => {
-                let bounds = {
-                    north: compute(p, props.query.height * 1000, 0).lat(),
-                    south: compute(p, props.query.height * 1000, 180).lat(),
-                    east: compute(p, props.query.width * 1000, 90).lng(),
-                    west: compute(p, props.query.width * 1000, 270).lng()
-                };
-                return (
-                    <>
-                        <Marker position={p}/>
-                        <Rectangle bounds={bounds} options={{
-                            fillOpacity: props.opacity,
-                            strokeOpacity: 0
-                        }}/>
-                    </>
-                );
-            })}
-        </GoogleMap>
-    );
-});
 
 export interface MapComponentProps {
     points: Array<Point>;
@@ -49,14 +16,27 @@ export interface MapComponentState {
 }
 
 export class MapComponent extends React.Component<MapComponentProps, MapComponentState> {
+    private mapContainer: React.ReactInstance;
+    private map: google.maps.Map;
+
     public constructor(props: MapComponentProps) {
         super(props);
 
         this.state = { opacity: 0.6 / props.maxOverlap };
     }
 
+    public componentDidMount() {
+        this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
+            center: { lat: -27.25, lng: 132.416667 }, zoom: 4
+        });
+    }
+
+    public getBounds(): google.maps.LatLngBounds {
+        return this.map.getBounds();
+    }
+
     public componentWillReceiveProps(nextProps: MapComponentProps) {
-        if (nextProps.updated)
+        if(nextProps.updated)
             this.setState({ opacity: 0.6 / nextProps.maxOverlap });
     }
 
@@ -65,10 +45,7 @@ export class MapComponent extends React.Component<MapComponentProps, MapComponen
     }
 
     public render() {
-        return (
-            <Map points={this.props.points} query={this.props.query} opacity={this.state.opacity}
-                 containerElement={<div/>} mapElement={<div className="map-canvas"/>}/>
-        );
+        return <div className="map-canvas" ref={ref => this.mapContainer = ref}/>;
     }
 
     public componentDidUpdate(prevProps: MapComponentProps, prevState: MapComponentState) {

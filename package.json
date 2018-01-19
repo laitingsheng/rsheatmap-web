@@ -5,6 +5,7 @@
   "dependencies": {
     "@google/maps": "^0.4.5",
     "@types/bootstrap": "^3.3.36",
+    "@types/googlemaps": "^3.30.4",
     "@types/jest": "^22.0.1",
     "@types/jquery": "^3.2.18",
     "@types/node": "^9.3.0",
