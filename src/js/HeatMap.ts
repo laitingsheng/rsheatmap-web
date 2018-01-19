@@ -1,22 +1,12 @@
 import rbush from 'rbush';
 import knn from './rbush-knn';
-import { UnaryFunction } from './Functions';
 
-export class Point {
+export interface Point {
     x: number;
     y: number;
-
-    public constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-    }
-
-    public toString() {
-        return `${this.x} ${this.y}`;
-    }
 }
 
-export interface Region {
+interface Region {
     minX: number;
     minY: number;
     maxX: number;
@@ -24,33 +14,23 @@ export interface Region {
 }
 
 export interface Query {
-    height: number;
-    width: number;
 }
 
 export class HeatMap {
     public points: Array<Point>;
-    public query: Query;
-    private point2region: UnaryFunction<Point, Region>;
+    public height: number;
+    public width: number;
     private tree: rbush;
 
     public get size(): number {
         return this.points.length;
     }
 
-    private static __point2region(query: Query, point: Point): Region {
-        return {
-            minX: point.x - query.width, minY: point.y - query.height,
-            maxX: point.x + query.width, maxY: point.y + query.height
-        };
-    }
-
     public constructor() {
         this.tree = new rbush();
         this.points = [];
-        this.query = { height: 100, width: 100 };
-
-        this.point2region = HeatMap.__point2region.bind(this, this.query);
+        this.height = this.width = 100;
+        this.point2region = this.point2region.bind(this);
     }
 
     public addPoint(point: Point): void {
@@ -64,8 +44,8 @@ export class HeatMap {
     }
 
     public changeQuery(queryHeight: number, queryWidth: number): void {
-        this.query.height = queryHeight;
-        this.query.width = queryWidth;
+        this.height = queryHeight;
+        this.width = queryWidth;
 
         this.tree = new rbush();
         this.tree.load(this.points.map(this.point2region));
@@ -79,6 +59,13 @@ export class HeatMap {
     public clear(): void {
         this.points = [];
         this.tree.clear();
+    }
+
+    private point2region(point: Point): Region {
+        return {
+            minX: point.x - this.width, minY: point.y - this.height,
+            maxX: point.x + this.width, maxY: point.y + this.height
+        };
     }
 }
 

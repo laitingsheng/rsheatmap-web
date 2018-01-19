@@ -15,7 +15,7 @@ export interface MainState {
 }
 
 export class Main extends React.Component<MainProps, MainState> {
-    private index: HeatMap;
+    private map: MapComponent;
 
     public constructor(props: MainProps) {
         super(props);
@@ -38,9 +38,7 @@ export class Main extends React.Component<MainProps, MainState> {
             <div role="main" className="container">
                 <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
                            clear={this.clear} points={this.index.size}/>
-                <MapComponent points={this.index.points} query={this.index.query}
-                              updated={this.state.updated} maxOverlap={this.state.maxOverlap}
-                              finalise={this.finaliseUpdate}/>
+                <MapComponent ref={ref => this.map = ref}/>
             </div>
         );
     }
