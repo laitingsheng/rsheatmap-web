@@ -55,9 +55,9 @@ export class MapComponent extends React.PureComponent<{}> {
     private tree: rbush;
     private points: Map<string, Point>;
     private query: Query;
+    private currOpacity: number;
 
     private _size: number;
-    private currOpacity: number;
 
     public get size(): number {
         return this._size;
@@ -65,6 +65,15 @@ export class MapComponent extends React.PureComponent<{}> {
 
     public get bounds(): LatLngBounds {
         return this.map.getBounds();
+    }
+
+    private static boundToRegion(bound: LatLngBounds): Region {
+        return {
+            minX: bound.getSouthWest().lat(),
+            minY: bound.getSouthWest().lng(),
+            maxX: bound.getNorthEast().lat(),
+            maxY: bound.getNorthEast().lng()
+        };
     }
 
     public constructor(props: {}) {
@@ -88,13 +97,13 @@ export class MapComponent extends React.PureComponent<{}> {
     }
 
     public addPoint(pos: Coordinate): void {
-        this.tree.insert(this.coordToRegion(this.insertPoint(pos)));
+        this.tree.insert(MapComponent.boundToRegion(this.insertPoint(pos)));
         ++this._size;
         this.updateOpacity();
     }
 
     public addPoints(poss: Array<Coordinate>): void {
-        this.tree.load(poss.map(pos => this.coordToRegion(this.insertPoint(pos))));
+        this.tree.load(poss.map(pos => MapComponent.boundToRegion(this.insertPoint(pos))));
         this._size += poss.length;
         this.updateOpacity();
     }
@@ -170,15 +179,6 @@ export class MapComponent extends React.PureComponent<{}> {
         }
 
         return p.rectangle.getBounds();
-    }
-
-    private coordToRegion(bound: LatLngBounds): Region {
-        return {
-            minX: bound.getSouthWest().lat(),
-            minY: bound.getSouthWest().lng(),
-            maxX: bound.getNorthEast().lat(),
-            maxY: bound.getNorthEast().lng()
-        };
     }
 
     private updateOpacity(): void {
