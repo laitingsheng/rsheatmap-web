@@ -25,7 +25,7 @@ class Header extends React.Component<HeaderProps> {
         });
     }
 
-    public setSearchBounds(bounds: LatLngBounds) {
+    public setSearchBounds(bounds: LatLngBounds): void {
         this.searchBox.setBounds(bounds);
         this.forceUpdate();
     }
