@@ -1,12 +1,43 @@
 import * as React from 'react';
+import { UnaryFunction } from './Functions';
+import { Coordinate } from './MapComponent';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/App.css';
+import LatLngBounds = google.maps.LatLngBounds;
+import SearchBox = google.maps.places.SearchBox;
 
-class Header extends React.Component<{}, {}> {
-    render() {
+export interface HeaderProps {
+    addPoints: UnaryFunction<Array<Coordinate>, void>;
+}
+
+class Header extends React.Component<HeaderProps> {
+    private placeSearch: HTMLInputElement;
+    private searchBox: SearchBox;
+
+    public componentDidMount() {
+        this.searchBox = new SearchBox(this.placeSearch);
+
+        this.searchBox.addListener('places_changed', () => {
+            this.props.addPoints(this.searchBox.getPlaces().map(p => {
+                let l = p.geometry.location;
+                return new Coordinate(l.lat(), l.lng());
+            }));
+        });
+    }
+
+    public setSearchBounds(bounds: LatLngBounds) {
+        this.searchBox.setBounds(bounds);
+        this.forceUpdate();
+    }
+
+    public shouldComponentUpdate() {
+        return false;
+    }
+
+    public render() {
         return (
             <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-                <a className="navbar-brand" href="#">Range Sum Heat Map</a>
+                <a className="navbar-brand" href="">Range Sum Heat Map</a>
                 <button className="navbar-toggler" type="button" data-toggle="collapse"
                         data-target="#navbarCollapse" aria-controls="navbarCollapse"
                         aria-expanded="false"
@@ -20,18 +51,16 @@ class Header extends React.Component<{}, {}> {
                                 className="sr-only">(current)</span></a>
                         </li>
                         {false && <li className="nav-item">
-                            <a className="nav-link" href="#">Link</a>
+                            <a className="nav-link" href="">Link</a>
                         </li>}
                         {false && <li className="nav-item">
-                            <a className="nav-link disabled" href="#">Disabled</a>
+                            <a className="nav-link disabled" href="">Disabled</a>
                         </li>}
                     </ul>
                     <form className="form-inline mt-2 mt-md-0">
-                        <input className="form-control mr-sm-2" type="text" placeholder="Search"
-                               aria-label="Search"/>
-                        <button className="btn btn-outline-success my-2 my-sm-0"
-                                type="submit">Search
-                        </button>
+                        <input className="form-control mr-sm-2" type="text"
+                               placeholder="Search Place" aria-label="Search Place"
+                               ref={ref => this.placeSearch = ref}/>
                     </form>
                 </div>
             </nav>

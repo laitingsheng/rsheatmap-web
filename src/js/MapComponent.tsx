@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import rbush from 'rbush';
+import { UnaryFunction } from './Functions';
 import knn from './rbush-knn';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
@@ -19,7 +20,7 @@ export class Coordinate {
         this.y = y;
     }
 
-    public toString(): string {
+    public toKey(): string {
         return `${this.x} ${this.y}`;
     }
 }
@@ -49,8 +50,12 @@ export interface Query {
     width: number;
 }
 
-export class MapComponent extends React.PureComponent<{}> {
-    private mapContainer: HTMLDivElement;
+export interface MapComponentProps {
+    updateSearchBounds: UnaryFunction<LatLngBounds, void>;
+}
+
+export class MapComponent extends React.Component<MapComponentProps> {
+    private mapContainer: React.ReactInstance;
     private map: google.maps.Map;
     private tree: rbush;
     private points: Map<string, Point>;
@@ -76,7 +81,7 @@ export class MapComponent extends React.PureComponent<{}> {
         };
     }
 
-    public constructor(props: {}) {
+    public constructor(props: MapComponentProps) {
         super(props);
 
         this.tree = new rbush();
@@ -92,8 +97,7 @@ export class MapComponent extends React.PureComponent<{}> {
             center: { lat: -27.25, lng: 132.416667 }, zoom: 4
         });
 
-        /*this.markers.forEach(m => m.setMap(this.map));
-        this.rectangles.forEach(r => r.setMap(this.map));*/
+        this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
     }
 
     public addPoint(pos: Coordinate): void {
@@ -141,6 +145,10 @@ export class MapComponent extends React.PureComponent<{}> {
         this.currOpacity = 0;
     }
 
+    public shouldComponentUpdate() {
+        return false;
+    }
+
     public render() {
         return <div className="map-canvas" ref={ref => this.mapContainer = ref}/>;
     }
@@ -155,7 +163,7 @@ export class MapComponent extends React.PureComponent<{}> {
     }
 
     private insertPoint(pos: Coordinate): LatLngBounds {
-        let p = this.points.get(pos.toString());
+        let p = this.points.get(pos.toKey());
         if(p)
             ++p.weight;
         else {
@@ -175,7 +183,7 @@ export class MapComponent extends React.PureComponent<{}> {
                 )
             );
 
-            this.points.set(p.toString(), p);
+            this.points.set(p.toKey(), p);
         }
 
         return p.rectangle.getBounds();
