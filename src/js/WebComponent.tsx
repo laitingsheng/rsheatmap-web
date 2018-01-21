@@ -30,7 +30,6 @@ export interface InputFormProps {
     changeRegion: BiFunction<number, number, void>;
     addPoint: BiFunction<number, number, void>;
     clear: Action<void>;
-    points: number;
 }
 
 export interface InputFormState {
