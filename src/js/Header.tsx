@@ -22,12 +22,13 @@ class Header extends React.Component<HeaderProps> {
                 let l = p.geometry.location;
                 return new Coordinate(l.lat(), l.lng());
             }));
+            this.placeSearch.placeholder = this.placeSearch.value;
+            this.placeSearch.value = '';
         });
     }
 
     public setSearchBounds(bounds: LatLngBounds): void {
         this.searchBox.setBounds(bounds);
-        this.forceUpdate();
     }
 
     public shouldComponentUpdate() {
@@ -57,7 +58,7 @@ class Header extends React.Component<HeaderProps> {
                             <a className="nav-link disabled" href="">Disabled</a>
                         </li>}
                     </ul>
-                    <form className="form-inline mt-2 mt-md-0">
+                    <form className="form-inline mt-2 mt-md-0" onSubmit={e => e.preventDefault()}>
                         <input className="form-control mr-sm-2" type="text"
                                placeholder="Search Place" aria-label="Search Place"
                                ref={ref => this.placeSearch = ref}/>

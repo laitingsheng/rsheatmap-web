@@ -120,7 +120,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         let points = [];
         this.points.forEach(v => {
             v.rectangle.setBounds(this.calcBound(new LatLng(v.x, v.y)));
-            points.push(v);
+            points.push(MapComponent.boundToRegion(v.rectangle.getBounds()));
         });
 
         // reset RTree index, reinsert all points
@@ -145,6 +145,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.currOpacity = 0;
     }
 
+    // there is no need to update the component
     public shouldComponentUpdate() {
         return false;
     }
