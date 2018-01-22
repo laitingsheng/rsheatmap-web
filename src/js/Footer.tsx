@@ -37,7 +37,7 @@ export class Footer extends React.PureComponent<{}, FooterState> {
                     <span className="text-muted">
                     App created by Tinson.
                     Current time is {this.state.date.toLocaleTimeString()}.
-                    Currently {this.count} points entered.
+                    Currently {this.count} points inserted.
                     </span>
                 </div>
             </footer>

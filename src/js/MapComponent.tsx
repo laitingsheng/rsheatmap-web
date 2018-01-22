@@ -8,6 +8,7 @@ import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
 import Marker = google.maps.Marker;
 import Rectangle = google.maps.Rectangle;
+import SymbolPath = google.maps.SymbolPath;
 
 const compute = google.maps.geometry.spherical.computeOffset;
 
@@ -26,13 +27,11 @@ export class Coordinate {
 }
 
 class Point extends Coordinate {
-    weight: number;
     marker: Marker;
     rectangle: Rectangle;
 
     public constructor(x: number, y: number, marker: Marker, rectangle: Rectangle) {
         super(x, y);
-        this.weight = 1;
         this.marker = marker;
         this.rectangle = rectangle;
     }
@@ -94,21 +93,42 @@ export class MapComponent extends React.Component<MapComponentProps> {
     public componentDidMount() {
         // create map when the component mount
         this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
-            center: { lat: -27.25, lng: 132.416667 }, zoom: 4
+            center: { lat: -27.25, lng: 132.416667 }, zoom: 4, fullscreenControl: false,
+            streetViewControl: false
         });
 
         this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
     }
 
     public addPoint(pos: Coordinate): void {
-        this.tree.insert(MapComponent.boundToRegion(this.insertPoint(pos)));
+        let p = this.insertPoint(pos);
+
+        if(!p) {
+            alert('duplicated points');
+            return;
+        }
+
+        this.tree.insert(MapComponent.boundToRegion(p));
         ++this._size;
         this.updateOpacity();
     }
 
     public addPoints(poss: Array<Coordinate>): void {
-        this.tree.load(poss.map(pos => MapComponent.boundToRegion(this.insertPoint(pos))));
-        this._size += poss.length;
+        let ps = [];
+        for(const pos of poss) {
+            let p = this.insertPoint(pos);
+            if(p)
+                ps.push(MapComponent.boundToRegion(p));
+        }
+
+        if(ps.length !== poss.length)
+            alert('duplicated points');
+
+        if(ps.length === 0)
+            return;
+
+        this.tree.load(ps);
+        this._size += ps.length;
         this.updateOpacity();
     }
 
@@ -130,17 +150,18 @@ export class MapComponent extends React.Component<MapComponentProps> {
     }
 
     public clear(): void {
+        // reset the whole map
+        this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
+            center: this.map.getCenter(), zoom: this.map.getZoom(), fullscreenControl: false,
+            streetViewControl: false
+        });
+
         // reset all points
         this.points = new Map<string, Point>();
         this._size = 0;
 
         // reset RTree index
         this.tree = new rbush();
-
-        // reset the whole map
-        this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
-            center: { lat: -27.25, lng: 132.416667 }, zoom: 4
-        });
 
         this.currOpacity = 0;
     }
@@ -166,26 +187,36 @@ export class MapComponent extends React.Component<MapComponentProps> {
     private insertPoint(pos: Coordinate): LatLngBounds {
         let p = this.points.get(pos.toKey());
         if(p)
-            ++p.weight;
-        else {
-            // if the point does not exist, create a new point and place the marker and the
-            // rectangle on the map
-            let c = new LatLng(pos.x, pos.y);
-            p = new Point(
-                pos.x, pos.y, new google.maps.Marker({ map: this.map, position: c }),
-                new google.maps.Rectangle(
-                    {
-                        map: this.map,
-                        bounds: this.calcBound(c),
-                        fillOpacity: this.currOpacity,
-                        strokeOpacity: 0,
-                        clickable: false
-                    }
-                )
-            );
+            return null;
 
-            this.points.set(p.toKey(), p);
-        }
+        // if the point does not exist, create a new point and place the marker and the
+        // rectangle on the map
+        let c = new LatLng(pos.x, pos.y);
+        p = new Point(
+            pos.x, pos.y, new google.maps.Marker(
+                {
+                    map: this.map, position: c,
+                    icon: {
+                        path: SymbolPath.CIRCLE,
+                        scale: 2,
+                        fillColor: 'Red',
+                        strokeColor: 'Red'
+                    }
+                }
+            ),
+            new google.maps.Rectangle(
+                {
+                    map: this.map,
+                    bounds: this.calcBound(c),
+                    fillOpacity: this.currOpacity,
+                    fillColor: 'Gray',
+                    strokeOpacity: 0,
+                    clickable: false
+                }
+            )
+        );
+
+        this.points.set(p.toKey(), p);
 
         return p.rectangle.getBounds();
     }
@@ -200,10 +231,10 @@ export class MapComponent extends React.Component<MapComponentProps> {
         });
 
         // update opacity of each rectangles
-        this.currOpacity = 0.7 / maxOverlap;
+        this.currOpacity = 0.8 / maxOverlap;
         this.points.forEach(v => {
             // adjust opacity according the weight
-            v.rectangle.setOptions({ fillOpacity: this.currOpacity * v.weight });
+            v.rectangle.setOptions({ fillOpacity: this.currOpacity });
         });
     }
 }

@@ -53,15 +53,10 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
         };
 
         // bindings
-        this.resetFiles = this.resetFiles.bind(this);
         this.addPoint = this.addPoint.bind(this);
         this.addPoints = this.addPoints.bind(this);
         this.resetPoints = this.resetPoints.bind(this);
         this.generate = this.generate.bind(this);
-    }
-
-    resetFiles(event: React.FormEvent<any>) {
-        event.preventDefault();
     }
 
     addPoint(event: React.FormEvent<any>) {
