@@ -16,6 +16,7 @@ export class App extends React.PureComponent<{}> {
         this.state = { count: 0, bounds: null };
 
         this.addPoints = this.addPoints.bind(this);
+        this.resetSearch = this.resetSearch.bind(this);
         this.updateCount = this.updateCount.bind(this);
         this.updateSearchBounds = this.updateSearchBounds.bind(this);
     }
@@ -25,7 +26,7 @@ export class App extends React.PureComponent<{}> {
             <>
                 <Header addPoints={this.addPoints} ref={ref => this.header = ref}/>
                 <Main updateCount={this.updateCount} updateSearchBounds={this.updateSearchBounds}
-                      ref={ref => this.main = ref}/>
+                      resetSearch={this.resetSearch} ref={ref => this.main = ref}/>
                 <Footer ref={ref => this.footer = ref}/>
             </>
         );
@@ -33,6 +34,10 @@ export class App extends React.PureComponent<{}> {
 
     private addPoints(points: Array<Coordinate>): void {
         this.main.addPoints(points);
+    }
+
+    private resetSearch(): void {
+        this.header.resetSearch();
     }
 
     private updateCount(count: number): void {

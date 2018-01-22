@@ -67,6 +67,10 @@ class Header extends React.Component<HeaderProps> {
             </nav>
         );
     }
+
+    public resetSearch(): void {
+        this.placeSearch.placeholder = 'Search Place';
+    }
 }
 
 export default Header;

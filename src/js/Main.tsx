@@ -2,10 +2,11 @@ import * as React from 'react';
 import InputForm from './WebComponent';
 import MapComponent, { Coordinate } from './MapComponent';
 import '../css/Map.css';
-import { UnaryFunction } from './Functions';
+import { Action, UnaryFunction } from './Functions';
 import LatLngBounds = google.maps.LatLngBounds;
 
 export interface MainProps {
+    resetSearch: Action<void>;
     updateCount: UnaryFunction<number, void>;
     updateSearchBounds: UnaryFunction<LatLngBounds, void>;
 }
@@ -31,7 +32,7 @@ export class Main extends React.Component<MainProps> {
                 <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
                            clear={this.clear}/>
                 <MapComponent updateSearchBounds={this.props.updateSearchBounds}
-                              ref={ref => this.map = ref}/>
+                              resetSearch={this.props.resetSearch} ref={ref => this.map = ref}/>
             </div>
         );
     }

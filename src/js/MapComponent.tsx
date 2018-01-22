@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import rbush from 'rbush';
-import { UnaryFunction } from './Functions';
+import { Action, UnaryFunction } from './Functions';
 import knn from './rbush-knn';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
@@ -51,6 +51,7 @@ export interface Query {
 
 export interface MapComponentProps {
     updateSearchBounds: UnaryFunction<LatLngBounds, void>;
+    resetSearch: Action<void>;
 }
 
 export class MapComponent extends React.Component<MapComponentProps> {
@@ -86,7 +87,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.tree = new rbush();
         this.points = new Map<string, Point>();
         this._size = 0;
-        this.query = { height: 100, width: 100 };
+        this.query = { height: 10, width: 10 };
         this.currOpacity = 0;
     }
 
@@ -98,15 +99,15 @@ export class MapComponent extends React.Component<MapComponentProps> {
         });
 
         this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
+        this.map.addListener('click', e =>
+            this.addPoint(new Coordinate(e.latLng.lat(), e.latLng.lng())));
     }
 
     public addPoint(pos: Coordinate): void {
         let p = this.insertPoint(pos);
 
-        if(!p) {
-            alert('duplicated points');
+        if(!p)
             return;
-        }
 
         this.tree.insert(MapComponent.boundToRegion(p));
         ++this._size;
@@ -120,9 +121,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
             if(p)
                 ps.push(MapComponent.boundToRegion(p));
         }
-
-        if(ps.length !== poss.length)
-            alert('duplicated points');
 
         if(ps.length === 0)
             return;
@@ -156,6 +154,10 @@ export class MapComponent extends React.Component<MapComponentProps> {
             streetViewControl: false
         });
 
+        this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
+        this.map.addListener('click', e =>
+            this.addPoint(new Coordinate(e.latLng.lat(), e.latLng.lng())));
+
         // reset all points
         this.points = new Map<string, Point>();
         this._size = 0;
@@ -164,6 +166,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.tree = new rbush();
 
         this.currOpacity = 0;
+
+        this.props.resetSearch();
     }
 
     // there is no need to update the component

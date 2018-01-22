@@ -46,8 +46,8 @@ export class InputForm extends React.PureComponent<InputFormProps, InputFormStat
         super(props);
 
         this.state = {
-            height: 100,
-            width: 100,
+            height: 10,
+            width: 10,
             lat: undefined,
             lng: undefined
         };
