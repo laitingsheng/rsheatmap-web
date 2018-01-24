@@ -2,7 +2,7 @@ import * as React from 'react';
 import Header from './Header';
 import Main from './Main';
 import Footer from './Footer';
-import { Coordinate } from './MapComponent';
+import { Combo } from './MapComponent';
 import LatLngBounds = google.maps.LatLngBounds;
 
 export class App extends React.PureComponent<{}> {
@@ -16,6 +16,7 @@ export class App extends React.PureComponent<{}> {
         this.state = { count: 0, bounds: null };
 
         this.addPoints = this.addPoints.bind(this);
+        this.history = this.history.bind(this);
         this.resetSearch = this.resetSearch.bind(this);
         this.updateCount = this.updateCount.bind(this);
         this.updateSearchBounds = this.updateSearchBounds.bind(this);
@@ -24,7 +25,8 @@ export class App extends React.PureComponent<{}> {
     public render() {
         return (
             <>
-                <Header addPoints={this.addPoints} ref={ref => this.header = ref}/>
+                <Header addPoints={this.addPoints} history={this.history} input={this.input}
+                        ref={ref => this.header = ref}/>
                 <Main updateCount={this.updateCount} updateSearchBounds={this.updateSearchBounds}
                       resetSearch={this.resetSearch} ref={ref => this.main = ref}/>
                 <Footer ref={ref => this.footer = ref}/>
@@ -32,8 +34,16 @@ export class App extends React.PureComponent<{}> {
         );
     }
 
-    private addPoints(points: Array<Coordinate>): void {
+    private addPoints(points: Array<Combo>): void {
         this.main.addPoints(points);
+    }
+
+    private history(): void {
+        this.main.history();
+    }
+
+    private input(): void {
+        this.main.input();
     }
 
     private resetSearch(): void {

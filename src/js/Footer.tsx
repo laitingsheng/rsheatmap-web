@@ -35,7 +35,6 @@ export class Footer extends React.PureComponent<{}, FooterState> {
             <footer className="footer">
                 <div className="container">
                     <span className="text-muted">
-                    App created by Tinson.
                     Current time is {this.state.date.toLocaleTimeString()}.
                     Currently {this.count} points inserted.
                     </span>

@@ -7,18 +7,28 @@ import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
 import Marker = google.maps.Marker;
+import PlaceResult = google.maps.places.PlaceResult;
 import Rectangle = google.maps.Rectangle;
 import SymbolPath = google.maps.SymbolPath;
 
 const compute = google.maps.geometry.spherical.computeOffset;
 
 export class Coordinate {
-    x: number;
-    y: number;
+    _x: number;
+
+    public get x(): number {
+        return this._x;
+    }
+
+    _y: number;
+
+    public get y(): number {
+        return this._y;
+    }
 
     public constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
+        this._x = x;
+        this._y = y;
     }
 
     public toKey(): string {
@@ -26,12 +36,26 @@ export class Coordinate {
     }
 }
 
-class Point extends Coordinate {
+export class Record extends Coordinate {
+    private _place: PlaceResult;
+
+    public get place(): PlaceResult {
+        return this._place;
+    }
+
+    public constructor(x: number, y: number, place: PlaceResult) {
+        super(x, y);
+        this._place = place;
+    }
+}
+
+class Point extends Record {
     marker: Marker;
     rectangle: Rectangle;
 
-    public constructor(x: number, y: number, marker: Marker, rectangle: Rectangle) {
-        super(x, y);
+    public constructor(x: number, y: number, marker: Marker, rectangle: Rectangle,
+                       place: PlaceResult) {
+        super(x, y, place);
         this.marker = marker;
         this.rectangle = rectangle;
     }
@@ -52,6 +76,11 @@ export interface Query {
 export interface MapComponentProps {
     updateSearchBounds: UnaryFunction<LatLngBounds, void>;
     resetSearch: Action<void>;
+}
+
+export interface Combo {
+    pos: Coordinate;
+    place: PlaceResult;
 }
 
 export class MapComponent extends React.Component<MapComponentProps> {
@@ -97,14 +126,13 @@ export class MapComponent extends React.Component<MapComponentProps> {
             center: { lat: -27.25, lng: 132.416667 }, zoom: 4, fullscreenControl: false,
             streetViewControl: false
         });
-
         this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
         this.map.addListener('click', e =>
             this.addPoint(new Coordinate(e.latLng.lat(), e.latLng.lng())));
     }
 
-    public addPoint(pos: Coordinate): void {
-        let p = this.insertPoint(pos);
+    public addPoint(pos: Coordinate, place?: PlaceResult): void {
+        let p = this.insertPoint(pos, place);
 
         if(!p)
             return;
@@ -114,10 +142,10 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.updateOpacity();
     }
 
-    public addPoints(poss: Array<Coordinate>): void {
+    public addPoints(poss: Array<Combo>): void {
         let ps = [];
-        for(const pos of poss) {
-            let p = this.insertPoint(pos);
+        for(const { pos, place } of poss) {
+            let p = this.insertPoint(pos, place);
             if(p)
                 ps.push(MapComponent.boundToRegion(p));
         }
@@ -153,7 +181,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
             center: this.map.getCenter(), zoom: this.map.getZoom(), fullscreenControl: false,
             streetViewControl: false
         });
-
         this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
         this.map.addListener('click', e =>
             this.addPoint(new Coordinate(e.latLng.lat(), e.latLng.lng())));
@@ -168,6 +195,12 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.currOpacity = 0;
 
         this.props.resetSearch();
+    }
+
+    public history(): Array<Record> {
+        const re = [];
+        this.points.forEach(v => re.push(new Record(v.x, v.y, v.place)));
+        return re;
     }
 
     // there is no need to update the component
@@ -188,7 +221,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         };
     }
 
-    private insertPoint(pos: Coordinate): LatLngBounds {
+    private insertPoint(pos: Coordinate, place: PlaceResult): LatLngBounds {
         let p = this.points.get(pos.toKey());
         if(p)
             return null;
@@ -217,7 +250,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
                     strokeOpacity: 0,
                     clickable: false
                 }
-            )
+            ),
+            place
         );
 
         this.points.set(p.toKey(), p);
