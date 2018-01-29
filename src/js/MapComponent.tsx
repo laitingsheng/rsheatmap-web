@@ -14,13 +14,13 @@ import SymbolPath = google.maps.SymbolPath;
 const compute = google.maps.geometry.spherical.computeOffset;
 
 export class Coordinate {
-    _x: number;
+    private _x: number;
 
     public get x(): number {
         return this._x;
     }
 
-    _y: number;
+    private _y: number;
 
     public get y(): number {
         return this._y;
@@ -53,7 +53,7 @@ class Point extends Record {
     marker: Marker;
     rectangle: Rectangle;
 
-    public constructor(x: number, y: number, marker: Marker, rectangle: Rectangle,
+    constructor(x: number, y: number, marker: Marker, rectangle: Rectangle,
                        place: PlaceResult) {
         super(x, y, place);
         this.marker = marker;
@@ -203,6 +203,9 @@ export class MapComponent extends React.Component<MapComponentProps> {
         return re;
     }
 
+    public remove(x: number, y: number): void {
+    }
+
     // there is no need to update the component
     public shouldComponentUpdate() {
         return false;
@@ -230,7 +233,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         // rectangle on the map
         let c = new LatLng(pos.x, pos.y);
         p = new Point(
-            pos.x, pos.y, new google.maps.Marker(
+            pos.x, pos.y, new Marker(
                 {
                     map: this.map, position: c,
                     icon: {
@@ -241,7 +244,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
                     }
                 }
             ),
-            new google.maps.Rectangle(
+            new Rectangle(
                 {
                     map: this.map,
                     bounds: this.calcBound(c),

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import MapComponent, { Combo, Coordinate } from './MapComponent';
+import MapComponent, { Combo, Coordinate, Record } from './MapComponent';
 import '../css/Map.css';
 import { Action, BiFunction, UnaryFunction } from './Functions';
 import LatLngBounds = google.maps.LatLngBounds;
@@ -108,7 +108,11 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
     }
 }
 
-class History extends React.PureComponent {
+interface HistoryProps {
+    records: Array<Record>;
+}
+
+class History extends React.PureComponent<HistoryProps> {
     public render() {
         return null;
     }
@@ -145,7 +149,7 @@ export class Main extends React.Component<MainProps, MainState> {
         return (
             <div role="main" className="container">
                 {
-                    this.state.history ? <History/> :
+                    this.state.history ? <History records={}/> :
                         <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
                                    clear={this.clear}/>
                 }
