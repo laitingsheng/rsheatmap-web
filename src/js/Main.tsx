@@ -1,5 +1,5 @@
 import * as React from 'react';
-import MapComponent, { Combo, Coordinate, Record } from './MapComponent';
+import MapComponent, { Combo, Record } from './MapComponent';
 import '../css/Map.css';
 import { Action, BiFunction, UnaryFunction } from './Functions';
 import LatLngBounds = google.maps.LatLngBounds;
@@ -173,7 +173,7 @@ export class Main extends React.Component<MainProps, MainState> {
     }
 
     private addPoint(x: number, y: number): void {
-        this.map.addPoint(new Coordinate(x, y));
+        this.map.addPoint(x, y);
         this.props.updateCount(this.map.size);
     }
 

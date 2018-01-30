@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Action, UnaryFunction } from './Functions';
-import { Combo, Coordinate } from './MapComponent';
+import { Combo } from './MapComponent';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/App.css';
 import LatLngBounds = google.maps.LatLngBounds;
@@ -29,7 +29,7 @@ class Header extends React.Component<HeaderProps> {
         this.searchBox.addListener('places_changed', () => {
             this.props.addPoints(this.searchBox.getPlaces().map(p => {
                 let l = p.geometry.location;
-                return { pos: new Coordinate(l.lat(), l.lng()), place: p };
+                return { x: l.lat(), y: l.lng(), place: p };
             }));
             this.placeSearch.placeholder = this.placeSearch.value;
             this.placeSearch.value = '';

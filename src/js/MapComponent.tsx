@@ -13,51 +13,38 @@ import SymbolPath = google.maps.SymbolPath;
 
 const compute = google.maps.geometry.spherical.computeOffset;
 
-export class Coordinate {
-    private _x: number;
-
-    public get x(): number {
-        return this._x;
-    }
-
-    private _y: number;
-
-    public get y(): number {
-        return this._y;
-    }
-
-    public constructor(x: number, y: number) {
-        this._x = x;
-        this._y = y;
-    }
-
-    public toKey(): string {
-        return `${this.x} ${this.y}`;
-    }
+function stringCoordinate(x: number, y: number): string {
+    return `${x} ${y}`;
 }
 
-export class Record extends Coordinate {
+export interface Coordinate {
+    x: number;
+    y: number;
+}
+
+export class Record implements Coordinate {
+    protected _pos: LatLng;
     private _place: PlaceResult;
+
+    public get x(): number {
+        return this._pos.lat();
+    }
+
+    public get y(): number {
+        return this._pos.lng();
+    }
 
     public get place(): PlaceResult {
         return this._place;
     }
 
-    public constructor(x: number, y: number, place: PlaceResult) {
-        super(x, y);
+    public constructor(pos: LatLng, place: PlaceResult) {
+        this._pos = pos;
         this._place = place;
     }
-}
 
-class Point extends Record {
-    marker: Marker;
-    rectangle: Rectangle;
-
-    constructor(x: number, y: number, marker: Marker, rectangle: Rectangle,
-                       place: PlaceResult) {
-        super(x, y, place);
-        this.marker = marker;
-        this.rectangle = rectangle;
+    public toKey(): string {
+        return stringCoordinate(this._pos.lat(), this._pos.lng());
     }
 }
 
@@ -66,6 +53,31 @@ interface Region {
     minY: number;
     maxX: number;
     maxY: number;
+}
+
+function boundToRegion(bound: LatLngBounds): Region {
+    const sw = bound.getSouthWest(), ne = bound.getNorthEast();
+    return {
+        minX: sw.lat(), minY: sw.lng(), maxX: ne.lat(), maxY: ne.lng()
+    };
+}
+
+class Point extends Record {
+    bound: Region;
+    marker: Marker;
+    rectangle: Rectangle;
+
+    get pos(): LatLng {
+        return this._pos;
+    }
+
+    constructor(pos: LatLng, marker: Marker, rectangle: Rectangle,
+                place: PlaceResult) {
+        super(pos, place);
+        this.bound = boundToRegion(this.rectangle.getBounds());
+        this.marker = marker;
+        this.rectangle = rectangle;
+    }
 }
 
 export interface Query {
@@ -79,8 +91,9 @@ export interface MapComponentProps {
 }
 
 export interface Combo {
-    pos: Coordinate;
-    place: PlaceResult;
+    x: number;
+    y: number;
+    place?: PlaceResult;
 }
 
 export class MapComponent extends React.Component<MapComponentProps> {
@@ -101,15 +114,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
         return this.map.getBounds();
     }
 
-    private static boundToRegion(bound: LatLngBounds): Region {
-        return {
-            minX: bound.getSouthWest().lat(),
-            minY: bound.getSouthWest().lng(),
-            maxX: bound.getNorthEast().lat(),
-            maxY: bound.getNorthEast().lng()
-        };
-    }
-
     public constructor(props: MapComponentProps) {
         super(props);
 
@@ -127,27 +131,26 @@ export class MapComponent extends React.Component<MapComponentProps> {
             streetViewControl: false
         });
         this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
-        this.map.addListener('click', e =>
-            this.addPoint(new Coordinate(e.latLng.lat(), e.latLng.lng())));
+        this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
     }
 
-    public addPoint(pos: Coordinate, place?: PlaceResult): void {
-        let p = this.insertPoint(pos, place);
+    public addPoint(x: number, y: number, place?: PlaceResult): void {
+        let p = this.createPoint(x, y, place);
 
         if(!p)
             return;
 
-        this.tree.insert(MapComponent.boundToRegion(p));
+        this.tree.insert(p.bound);
         ++this._size;
         this.updateOpacity();
     }
 
     public addPoints(poss: Array<Combo>): void {
         let ps = [];
-        for(const { pos, place } of poss) {
-            let p = this.insertPoint(pos, place);
+        for(const { x, y, place } of poss) {
+            let p = this.createPoint(x, y, place);
             if(p)
-                ps.push(MapComponent.boundToRegion(p));
+                ps.push(p.bound);
         }
 
         if(ps.length === 0)
@@ -165,8 +168,9 @@ export class MapComponent extends React.Component<MapComponentProps> {
         // change boundaries
         let points = [];
         this.points.forEach(v => {
-            v.rectangle.setBounds(this.calcBound(new LatLng(v.x, v.y)));
-            points.push(MapComponent.boundToRegion(v.rectangle.getBounds()));
+            v.rectangle.setBounds(this.calcBound(v.pos));
+            v.bound = boundToRegion(v.rectangle.getBounds());
+            points.push(v.bound);
         });
 
         // reset RTree index, reinsert all points
@@ -182,8 +186,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
             streetViewControl: false
         });
         this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
-        this.map.addListener('click', e =>
-            this.addPoint(new Coordinate(e.latLng.lat(), e.latLng.lng())));
+        this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
 
         // reset all points
         this.points = new Map<string, Point>();
@@ -199,11 +202,20 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
     public history(): Array<Record> {
         const re = [];
-        this.points.forEach(v => re.push(new Record(v.x, v.y, v.place)));
+        this.points.forEach(v => re.push(new Record(v.pos, v.place)));
         return re;
     }
 
     public remove(x: number, y: number): void {
+        const key = stringCoordinate(x, y);
+        const p = this.points.get(key);
+        if(!p)
+            return;
+
+        p.marker.setMap(null);
+        p.rectangle.setMap(null);
+
+        this.points.set(key, null);
     }
 
     // there is no need to update the component
@@ -224,16 +236,16 @@ export class MapComponent extends React.Component<MapComponentProps> {
         };
     }
 
-    private insertPoint(pos: Coordinate, place: PlaceResult): LatLngBounds {
-        let p = this.points.get(pos.toKey());
+    private createPoint(x: number, y: number, place: PlaceResult): Point {
+        let p = this.points.get(stringCoordinate(x, y));
         if(p)
             return null;
 
         // if the point does not exist, create a new point and place the marker and the
         // rectangle on the map
-        let c = new LatLng(pos.x, pos.y);
+        let c = new LatLng(x, y);
         p = new Point(
-            pos.x, pos.y, new Marker(
+            c, new Marker(
                 {
                     map: this.map, position: c,
                     icon: {
@@ -259,7 +271,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
         this.points.set(p.toKey(), p);
 
-        return p.rectangle.getBounds();
+        return p;
     }
 
     private updateOpacity(): void {

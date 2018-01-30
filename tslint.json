@@ -24,6 +24,7 @@
     ],
     "interface-name": false,
     "jsdoc-format": true,
+    "jsx-curly-spacing": false,
     "jsx-alignment": false,
     "jsx-no-lambda": false,
     "jsx-no-multiline-js": false,
