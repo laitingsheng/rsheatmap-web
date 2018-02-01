@@ -10,7 +10,7 @@ export class Footer extends React.PureComponent<{}, FooterState> {
     private timerID: NodeJS.Timer;
     private count: number;
 
-    public constructor(props: {}) {
+    constructor(props: {}) {
         super(props);
 
         this.count = 0;
@@ -19,18 +19,18 @@ export class Footer extends React.PureComponent<{}, FooterState> {
         this.update = this.update.bind(this);
     }
 
-    public componentDidMount() {
+    componentDidMount() {
         this.timerID = setInterval(
             this.update,
             1000
         );
     }
 
-    public componentWillUnmount() {
+    componentWillUnmount() {
         clearInterval(this.timerID);
     }
 
-    public render() {
+    render() {
         return (
             <footer className="footer">
                 <div className="container">
@@ -43,7 +43,7 @@ export class Footer extends React.PureComponent<{}, FooterState> {
         );
     }
 
-    public updateCount(count: number) {
+    updateCount(count: number) {
         this.count = count;
         this.forceUpdate();
     }

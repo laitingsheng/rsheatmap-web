@@ -9,6 +9,7 @@
 }
 
 .wrap-box > .wrap-full-box {
+    height: 280px;
     width: 98%;
     position: relative;
     padding: 0.5rem;

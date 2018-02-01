@@ -1,7 +1,8 @@
 import * as React from 'react';
-import MapComponent, { Combo, Record } from './MapComponent';
-import '../css/Map.css';
 import { Action, BiFunction, UnaryFunction } from './Functions';
+import MapComponent, { Combo, Record } from './MapComponent';
+import '../css/Component.css';
+import '../css/Map.css';
 import LatLngBounds = google.maps.LatLngBounds;
 
 interface TitleProps {
@@ -42,7 +43,7 @@ interface InputFormState {
 }
 
 class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
-    public constructor(props: InputFormProps) {
+    constructor(props: InputFormProps) {
         super(props);
 
         this.state = {
@@ -58,25 +59,11 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
         this.generate = this.generate.bind(this);
     }
 
-    addPoint(event: React.FormEvent<any>) {
-        event.preventDefault();
-        this.props.addPoint(Number(this.state.lat), Number(this.state.lng));
-    }
-
-    resetPoints() {
-        this.props.clear();
-    }
-
-    generate(event: any) {
-        event.preventDefault();
-        this.props.changeRegion(Number(this.state.height), Number(this.state.width));
-    }
-
-    public render() {
+    render() {
         return (
-            <div className="wrap-box">
-                <form className="wrap-full-box wrap-inner-box"
-                      onSubmit={this.addPoint} onReset={this.resetPoints}>
+            <>
+                <form className="wrap-full-box wrap-inner-box" onSubmit={this.addPoint}
+                      onReset={this.resetPoints}>
                     <Title text="Point"/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
                                     onChange={e => this.setState({ lng: e.target.value })}
@@ -103,18 +90,41 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
                         Update
                     </button>
                 </form>
-            </div>
+            </>
         );
+    }
+
+    private addPoint(event: React.FormEvent<any>) {
+        event.preventDefault();
+        this.props.addPoint(Number(this.state.lat), Number(this.state.lng));
+    }
+
+    private resetPoints() {
+        this.props.clear();
+    }
+
+    private generate(event: any) {
+        event.preventDefault();
+        this.props.changeRegion(Number(this.state.height), Number(this.state.width));
     }
 }
 
 interface HistoryProps {
-    records: Array<Record>;
+    generate: Action<Array<Record>>;
+    remove: BiFunction<number, number, void>;
 }
 
-class History extends React.PureComponent<HistoryProps> {
-    public render() {
-        return null;
+class History extends React.Component<HistoryProps> {
+    shouldComponentUpdate() {
+        return false;
+    }
+
+    render() {
+        return (
+            <form className="wrap-full-box">
+                <ul className="list-group"/>
+            </form>
+        );
     }
 }
 
@@ -129,9 +139,10 @@ export interface MainState {
 }
 
 export class Main extends React.Component<MainProps, MainState> {
+    private history: History;
     private map: MapComponent;
 
-    public constructor(props: MainProps) {
+    constructor(props: MainProps) {
         super(props);
 
         this.state = { history: false };
@@ -139,37 +150,47 @@ export class Main extends React.Component<MainProps, MainState> {
         this.addPoint = this.addPoint.bind(this);
         this.changeRegion = this.changeRegion.bind(this);
         this.clear = this.clear.bind(this);
+        this.generate = this.generate.bind(this);
+        this.removePoint = this.removePoint.bind(this);
     }
 
-    public shouldComponentUpdate() {
+    shouldComponentUpdate() {
         return false;
     }
 
-    public render() {
+    render() {
         return (
             <div role="main" className="container">
-                {
-                    this.state.history ? <History records={}/> :
-                        <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
-                                   clear={this.clear}/>
-                }
-                <MapComponent updateSearchBounds={this.props.updateSearchBounds}
-                              resetSearch={this.props.resetSearch} ref={ref => this.map = ref}/>
+                <div className="wrap-box">
+                    {
+                        this.state.history ?
+                            <History generate={this.generate} remove={this.removePoint}
+                                     ref={ref => this.history = ref}/>
+                            :
+                            <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
+                                       clear={this.clear}/>
+                    }
+                </div>
+                <MapComponent resetSearch={this.props.resetSearch}
+                              updateSearchBounds={this.props.updateSearchBounds}
+                              ref={ref => this.map = ref}/>
             </div>
         );
     }
 
-    public addPoints(points: Array<Combo>): void {
+    addPoints(points: Array<Combo>): void {
         this.map.addPoints(points);
         this.props.updateCount(this.map.size);
     }
 
-    public history(): void {
+    hist(): void {
         this.setState({ history: true });
+        this.forceUpdate();
     }
 
-    public input(): void {
-        this.setState({ history: true });
+    input(): void {
+        this.setState({ history: false });
+        this.forceUpdate();
     }
 
     private addPoint(x: number, y: number): void {
@@ -184,6 +205,14 @@ export class Main extends React.Component<MainProps, MainState> {
 
     private changeRegion(height: number, width: number): void {
         this.map.changeQuery(height, width);
+    }
+
+    private generate(): Array<Record> {
+        return this.map.generateRecords();
+    }
+
+    private removePoint(x: number, y: number) {
+        this.map.remove(x, y);
     }
 }
 

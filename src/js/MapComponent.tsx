@@ -13,7 +13,7 @@ import SymbolPath = google.maps.SymbolPath;
 
 const compute = google.maps.geometry.spherical.computeOffset;
 
-function stringCoordinate(x: number, y: number): string {
+function stringifyCoordinate(x: number, y: number): string {
     return `${x} ${y}`;
 }
 
@@ -24,59 +24,103 @@ export interface Coordinate {
 
 export class Record implements Coordinate {
     protected _pos: LatLng;
-    private _place: PlaceResult;
+    protected _place: PlaceResult;
 
-    public get x(): number {
-        return this._pos.lat();
-    }
-
-    public get y(): number {
-        return this._pos.lng();
-    }
-
-    public get place(): PlaceResult {
+    get place(): PlaceResult {
         return this._place;
     }
 
-    public constructor(pos: LatLng, place: PlaceResult) {
+    get x(): number {
+        return this._pos.lat();
+    }
+
+    get y(): number {
+        return this._pos.lng();
+    }
+
+    constructor(pos: LatLng, place: PlaceResult) {
         this._pos = pos;
         this._place = place;
     }
 
-    public toKey(): string {
-        return stringCoordinate(this._pos.lat(), this._pos.lng());
+    toKey(): string {
+        return stringifyCoordinate(this._pos.lat(), this._pos.lng());
     }
 }
 
-interface Region {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-}
+class Region {
+    private _minX: number;
 
-function boundToRegion(bound: LatLngBounds): Region {
-    const sw = bound.getSouthWest(), ne = bound.getNorthEast();
-    return {
-        minX: sw.lat(), minY: sw.lng(), maxX: ne.lat(), maxY: ne.lng()
-    };
+    get minX(): number {
+        return this._minX;
+    }
+
+    private _minY: number;
+
+    get minY(): number {
+        return this._minY;
+    }
+
+    private _maxX: number;
+
+    get maxX(): number {
+        return this._maxX;
+    }
+
+    private _maxY: number;
+
+    get maxY(): number {
+        return this._maxY;
+    }
+
+    static fromBound(bound: LatLngBounds): Region {
+        const sw = bound.getSouthWest(), ne = bound.getNorthEast();
+        return new Region(sw.lat(), sw.lng(), ne.lat(), ne.lng());
+    }
+
+    private constructor(minX: number, minY: number, maxX: number, maxY: number) {
+        this._minX = minX;
+        this._minY = minY;
+        this._maxX = maxX;
+        this._maxY = maxY;
+    }
 }
 
 class Point extends Record {
-    bound: Region;
-    marker: Marker;
-    rectangle: Rectangle;
+    private _bound: Region;
+
+    get bound() {
+        return this._bound;
+    }
+
+    set bound(bound: LatLngBounds | Region) {
+        if(bound instanceof Region)
+            this._bound = bound;
+        else
+            this._bound = Region.fromBound(bound);
+    }
+
+    private _marker: Marker;
+
+    get marker(): Marker {
+        return this._marker;
+    }
+
+    private _rectangle: Rectangle;
 
     get pos(): LatLng {
         return this._pos;
     }
 
-    constructor(pos: LatLng, marker: Marker, rectangle: Rectangle,
-                place: PlaceResult) {
+    get rectangle(): Rectangle {
+        return this._rectangle;
+    }
+
+    constructor(pos: LatLng, marker: Marker, rectangle: Rectangle, place: PlaceResult) {
         super(pos, place);
-        this.bound = boundToRegion(this.rectangle.getBounds());
-        this.marker = marker;
-        this.rectangle = rectangle;
+        this._bound = Region.fromBound(rectangle.getBounds());
+        this._marker = marker;
+        this._rectangle = rectangle;
     }
 }
 
@@ -103,18 +147,17 @@ export class MapComponent extends React.Component<MapComponentProps> {
     private points: Map<string, Point>;
     private query: Query;
     private currOpacity: number;
-
     private _size: number;
 
-    public get size(): number {
+    get size(): number {
         return this._size;
     }
 
-    public get bounds(): LatLngBounds {
+    get bounds(): LatLngBounds {
         return this.map.getBounds();
     }
 
-    public constructor(props: MapComponentProps) {
+    constructor(props: MapComponentProps) {
         super(props);
 
         this.tree = new rbush();
@@ -124,7 +167,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.currOpacity = 0;
     }
 
-    public componentDidMount() {
+    componentDidMount() {
         // create map when the component mount
         this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
             center: { lat: -27.25, lng: 132.416667 }, zoom: 4, fullscreenControl: false,
@@ -134,7 +177,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
     }
 
-    public addPoint(x: number, y: number, place?: PlaceResult): void {
+    addPoint(x: number, y: number, place?: PlaceResult): void {
         let p = this.createPoint(x, y, place);
 
         if(!p)
@@ -145,23 +188,23 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.updateOpacity();
     }
 
-    public addPoints(poss: Array<Combo>): void {
-        let ps = [];
+    addPoints(poss: Array<Combo>): void {
+        let pbs = [];
         for(const { x, y, place } of poss) {
             let p = this.createPoint(x, y, place);
             if(p)
-                ps.push(p.bound);
+                pbs.push(p.bound);
         }
 
-        if(ps.length === 0)
+        if(pbs.length === 0)
             return;
 
-        this.tree.load(ps);
-        this._size += ps.length;
+        this.tree.load(pbs);
+        this._size += pbs.length;
         this.updateOpacity();
     }
 
-    public changeQuery(queryHeight: number, queryWidth: number): void {
+    changeQuery(queryHeight: number, queryWidth: number): void {
         this.query.height = queryHeight;
         this.query.width = queryWidth;
 
@@ -169,7 +212,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         let points = [];
         this.points.forEach(v => {
             v.rectangle.setBounds(this.calcBound(v.pos));
-            v.bound = boundToRegion(v.rectangle.getBounds());
+            v.bound = v.rectangle.getBounds();
             points.push(v.bound);
         });
 
@@ -179,7 +222,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.updateOpacity();
     }
 
-    public clear(): void {
+    clear(): void {
         // reset the whole map
         this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
             center: this.map.getCenter(), zoom: this.map.getZoom(), fullscreenControl: false,
@@ -200,14 +243,12 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.props.resetSearch();
     }
 
-    public history(): Array<Record> {
-        const re = [];
-        this.points.forEach(v => re.push(new Record(v.pos, v.place)));
-        return re;
+    generateRecords(): Array<Record> {
+        return Array.from(this.points.values());
     }
 
-    public remove(x: number, y: number): void {
-        const key = stringCoordinate(x, y);
+    remove(x: number, y: number): void {
+        const key = stringifyCoordinate(x, y);
         const p = this.points.get(key);
         if(!p)
             return;
@@ -219,11 +260,11 @@ export class MapComponent extends React.Component<MapComponentProps> {
     }
 
     // there is no need to update the component
-    public shouldComponentUpdate() {
+    shouldComponentUpdate() {
         return false;
     }
 
-    public render() {
+    render() {
         return <div className="map-canvas" ref={ref => this.mapContainer = ref}/>;
     }
 
@@ -237,7 +278,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
     }
 
     private createPoint(x: number, y: number, place: PlaceResult): Point {
-        let p = this.points.get(stringCoordinate(x, y));
+        let p = this.points.get(stringifyCoordinate(x, y));
         if(p)
             return null;
 

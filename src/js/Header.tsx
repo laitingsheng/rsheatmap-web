@@ -16,14 +16,14 @@ class Header extends React.Component<HeaderProps> {
     private placeSearch: HTMLInputElement;
     private searchBox: SearchBox;
 
-    public constructor(props: HeaderProps) {
+    constructor(props: HeaderProps) {
         super(props);
 
         this.history = this.history.bind(this);
         this.input = this.input.bind(this);
     }
 
-    public componentDidMount() {
+    componentDidMount() {
         this.searchBox = new SearchBox(this.placeSearch);
 
         this.searchBox.addListener('places_changed', () => {
@@ -36,15 +36,15 @@ class Header extends React.Component<HeaderProps> {
         });
     }
 
-    public setSearchBounds(bounds: LatLngBounds): void {
+    setSearchBounds(bounds: LatLngBounds): void {
         this.searchBox.setBounds(bounds);
     }
 
-    public shouldComponentUpdate() {
+    shouldComponentUpdate() {
         return false;
     }
 
-    public render() {
+    render() {
         return (
             <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
                 <a className="navbar-brand" href="">Range Sum Heat Map</a>
@@ -60,7 +60,7 @@ class Header extends React.Component<HeaderProps> {
                             <a className="nav-link" href="" onClick={this.input}>Map</a>
                         </li>
                         <li className="nav-item">
-                            <a className="nav-link" href="" onClick={this.history}>Link</a>
+                            <a className="nav-link" href="" onClick={this.history}>History</a>
                         </li>
                     </ul>
                     <form className="form-inline mt-2 mt-md-0" onSubmit={e => e.preventDefault()}>
@@ -73,7 +73,7 @@ class Header extends React.Component<HeaderProps> {
         );
     }
 
-    public resetSearch(): void {
+    resetSearch(): void {
         this.placeSearch.placeholder = 'Search Place';
     }
 

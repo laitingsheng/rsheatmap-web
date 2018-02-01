@@ -10,19 +10,20 @@ export class App extends React.PureComponent<{}> {
     private main: Main;
     private footer: Footer;
 
-    public constructor(props: {}) {
+    constructor(props: {}) {
         super(props);
 
         this.state = { count: 0, bounds: null };
 
         this.addPoints = this.addPoints.bind(this);
         this.history = this.history.bind(this);
+        this.input = this.input.bind(this);
         this.resetSearch = this.resetSearch.bind(this);
         this.updateCount = this.updateCount.bind(this);
         this.updateSearchBounds = this.updateSearchBounds.bind(this);
     }
 
-    public render() {
+    render() {
         return (
             <>
                 <Header addPoints={this.addPoints} history={this.history} input={this.input}
@@ -39,7 +40,7 @@ export class App extends React.PureComponent<{}> {
     }
 
     private history(): void {
-        this.main.history();
+        this.main.hist();
     }
 
     private input(): void {
