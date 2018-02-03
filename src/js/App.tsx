@@ -2,7 +2,7 @@ import * as React from 'react';
 import Header from './Header';
 import Main from './Main';
 import Footer from './Footer';
-import { Combo } from './MapComponent';
+import { Params } from './MapComponent';
 import LatLngBounds = google.maps.LatLngBounds;
 
 export class App extends React.PureComponent<{}> {
@@ -35,7 +35,7 @@ export class App extends React.PureComponent<{}> {
         );
     }
 
-    private addPoints(points: Array<Combo>): void {
+    private addPoints(points: Array<Params>): void {
         this.main.addPoints(points);
     }
 

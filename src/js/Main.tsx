@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Action, BiFunction, UnaryFunction } from './Functions';
-import MapComponent, { Combo, Record } from './MapComponent';
+import MapComponent, { Params, Record } from './MapComponent';
 import '../css/Component.css';
 import '../css/Map.css';
 import LatLngBounds = google.maps.LatLngBounds;
@@ -114,17 +114,95 @@ interface HistoryProps {
     remove: BiFunction<number, number, void>;
 }
 
+class Row {
+    record: Record;
+    rowRef: Array<HTMLTableCellElement>;
+    selected: boolean;
+
+    constructor(candidate: Record) {
+        this.record = candidate;
+        this.rowRef = null;
+        this.selected = false;
+    }
+}
+
 class History extends React.Component<HistoryProps> {
+    private selection: Map<string, Row>;
+
+    constructor(props: HistoryProps) {
+        super(props);
+
+        this.selection = new Map();
+
+        this.removePoints = this.removePoints.bind(this);
+    }
+
     shouldComponentUpdate() {
         return false;
     }
 
     render() {
         return (
-            <form className="wrap-full-box">
-                <ul className="list-group"/>
+            <form className="wrap-full-box" onSubmit={this.removePoints}>
+                <table className="table table-history">
+                    <thead>
+                    <tr>
+                        <th className="col-md-3">x</th>
+                        <th className="col-md-3">y</th>
+                        <th className="col-md-6">Place Name</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {
+                        this.props.generate().map(r => {
+                            let row = this.selection.get(r.toKey());
+                            if(!row) {
+                                row = new Row(r);
+                                row.rowRef = new Array(3);
+                                this.selection.set(r.toKey(), row);
+                            }
+                            return (
+                                <tr onClick={this.generateAction(r)} key={r.toKey()}>
+                                    <td className="col-md-3"
+                                        ref={ref => row.rowRef[0] = ref}>
+                                        {r.x.toFixed(6)}
+                                    </td>
+                                    <td className="col-md-3"
+                                        ref={ref => row.rowRef[1] = ref}>
+                                        {r.y.toFixed(6)}
+                                    </td>
+                                    <td className="col-md-6"
+                                        ref={ref => row.rowRef[2] = ref}>
+                                        {r.place && r.place.name}
+                                    </td>
+                                </tr>
+                            );
+                        })
+                    }
+                    </tbody>
+                </table>
+                <button type="submit" className="btn btn-primary">Remove</button>
             </form>
         );
+    }
+
+    private generateAction(r: Record): Action<void> {
+        return () => {
+            const row = this.selection.get(r.toKey());
+            row.selected = !row.selected;
+            row.rowRef.forEach(c => c.bgColor = row.selected ? 'lightgrey' : 'white');
+        };
+    }
+
+    private removePoints(event: React.FormEvent<any>) {
+        event.preventDefault();
+
+        const candidates = [];
+        this.selection.forEach(v => v.selected && candidates.push(v.record));
+        candidates.forEach(v => {
+            this.selection.delete(v.toKey());
+            this.props.remove(v.x, v.y);
+        });
     }
 }
 
@@ -152,6 +230,7 @@ export class Main extends React.Component<MainProps, MainState> {
         this.clear = this.clear.bind(this);
         this.generate = this.generate.bind(this);
         this.removePoint = this.removePoint.bind(this);
+        this.updateHistory = this.updateHistory.bind(this);
     }
 
     shouldComponentUpdate() {
@@ -172,13 +251,14 @@ export class Main extends React.Component<MainProps, MainState> {
                     }
                 </div>
                 <MapComponent resetSearch={this.props.resetSearch}
+                              updateHistory={this.updateHistory}
                               updateSearchBounds={this.props.updateSearchBounds}
                               ref={ref => this.map = ref}/>
             </div>
         );
     }
 
-    addPoints(points: Array<Combo>): void {
+    addPoints(points: Array<Params>): void {
         this.map.addPoints(points);
         this.props.updateCount(this.map.size);
     }
@@ -213,6 +293,11 @@ export class Main extends React.Component<MainProps, MainState> {
 
     private removePoint(x: number, y: number) {
         this.map.remove(x, y);
+    }
+
+    private updateHistory(): void {
+        if(this.history)
+            this.history.forceUpdate();
     }
 }
 

@@ -21,6 +21,41 @@
     width: 48%;
 }
 
+.table-history {
+    height: 200px;
+    width: 100%;
+}
+
+.table-history thead, tbody, tr {
+    display: block;
+}
+
+.table-history thead th, .table-history tbody td {
+    height: 30px;
+    padding: 0 0 0 1rem;
+    vertical-align: middle;
+}
+
+.table-history thead tr th {
+    color: white;
+    background-color: black;
+    border-color: black;
+}
+
+.table-history thead tr th, .table-history tbody tr td {
+    float: left;
+}
+
+.table-history tbody {
+    height: 170px;
+    overflow-y: scroll;
+    width: 100%;
+}
+
+.table-history tbody tr:hover td {
+    background-color: lightgrey;
+}
+
 .form-title {
     font-size: larger;
 }

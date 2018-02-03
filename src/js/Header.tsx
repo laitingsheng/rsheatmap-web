@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Action, UnaryFunction } from './Functions';
-import { Combo } from './MapComponent';
+import { Params } from './MapComponent';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/App.css';
 import LatLngBounds = google.maps.LatLngBounds;
 import SearchBox = google.maps.places.SearchBox;
 
 export interface HeaderProps {
-    addPoints: UnaryFunction<Array<Combo>, void>;
+    addPoints: UnaryFunction<Array<Params>, void>;
     history: Action<void>;
     input: Action<void>;
 }
@@ -15,6 +15,8 @@ export interface HeaderProps {
 class Header extends React.Component<HeaderProps> {
     private placeSearch: HTMLInputElement;
     private searchBox: SearchBox;
+    private h: HTMLLIElement;
+    private i: HTMLLIElement;
 
     constructor(props: HeaderProps) {
         super(props);
@@ -56,10 +58,10 @@ class Header extends React.Component<HeaderProps> {
                 </button>
                 <div className="collapse navbar-collapse" id="navbarCollapse">
                     <ul className="navbar-nav mr-auto">
-                        <li className="nav-item active">
+                        <li className="nav-item active" ref={ref => this.h = ref}>
                             <a className="nav-link" href="" onClick={this.input}>Map</a>
                         </li>
-                        <li className="nav-item">
+                        <li className="nav-item" ref={ref => this.i = ref}>
                             <a className="nav-link" href="" onClick={this.history}>History</a>
                         </li>
                     </ul>
@@ -79,11 +81,15 @@ class Header extends React.Component<HeaderProps> {
 
     private history(event: React.FormEvent<any>): void {
         event.preventDefault();
+        this.h.classList.remove('active');
+        this.i.classList.add('active');
         this.props.history();
     }
 
     private input(event: React.FormEvent<any>): void {
         event.preventDefault();
+        this.i.classList.remove('active');
+        this.h.classList.add('active');
         this.props.input();
     }
 }

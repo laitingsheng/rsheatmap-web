@@ -130,11 +130,12 @@ export interface Query {
 }
 
 export interface MapComponentProps {
-    updateSearchBounds: UnaryFunction<LatLngBounds, void>;
     resetSearch: Action<void>;
+    updateHistory: Action<void>;
+    updateSearchBounds: UnaryFunction<LatLngBounds, void>;
 }
 
-export interface Combo {
+export interface Params {
     x: number;
     y: number;
     place?: PlaceResult;
@@ -186,9 +187,11 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.tree.insert(p.bound);
         ++this._size;
         this.updateOpacity();
+
+        this.props.updateHistory();
     }
 
-    addPoints(poss: Array<Combo>): void {
+    addPoints(poss: Array<Params>): void {
         let pbs = [];
         for(const { x, y, place } of poss) {
             let p = this.createPoint(x, y, place);
@@ -202,6 +205,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.tree.load(pbs);
         this._size += pbs.length;
         this.updateOpacity();
+
+        this.props.updateHistory();
     }
 
     changeQuery(queryHeight: number, queryWidth: number): void {
@@ -256,7 +261,9 @@ export class MapComponent extends React.Component<MapComponentProps> {
         p.marker.setMap(null);
         p.rectangle.setMap(null);
 
-        this.points.set(key, null);
+        this.points.delete(key);
+
+        this.props.updateHistory();
     }
 
     // there is no need to update the component
