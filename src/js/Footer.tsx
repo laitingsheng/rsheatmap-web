@@ -45,6 +45,8 @@ export class Footer extends React.PureComponent<{}, FooterState> {
 
     updateCount(count: number) {
         this.count = count;
+
+        // immediate update
         this.forceUpdate();
     }
 

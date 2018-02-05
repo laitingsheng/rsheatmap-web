@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
-import rbush from 'rbush';
 import { Action, UnaryFunction } from './Functions';
-import knn from './rbush-knn';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -18,109 +16,53 @@ function stringifyCoordinate(x: number, y: number): string {
 }
 
 export interface Coordinate {
-    x: number;
-    y: number;
+    readonly x: number;
+    readonly y: number;
 }
 
 export class Record implements Coordinate {
-    protected _pos: LatLng;
-    protected _place: PlaceResult;
-
-    get place(): PlaceResult {
-        return this._place;
-    }
-
     get x(): number {
-        return this._pos.lat();
+        return this.pos.lat();
     }
 
     get y(): number {
-        return this._pos.lng();
+        return this.pos.lng();
     }
 
-    constructor(pos: LatLng, place: PlaceResult) {
-        this._pos = pos;
-        this._place = place;
+    constructor(readonly pos: LatLng, readonly place: PlaceResult) {
+        this.toString = this.toKey;
     }
 
     toKey(): string {
-        return stringifyCoordinate(this._pos.lat(), this._pos.lng());
+        return stringifyCoordinate(this.pos.lat(), this.pos.lng());
     }
 }
 
-class Region {
-    private _minX: number;
+export interface Bound {
+    readonly minX: number;
+    readonly minY: number;
+    readonly maxX: number;
+    readonly maxY: number;
+}
 
-    get minX(): number {
-        return this._minX;
-    }
-
-    private _minY: number;
-
-    get minY(): number {
-        return this._minY;
-    }
-
-    private _maxX: number;
-
-    get maxX(): number {
-        return this._maxX;
-    }
-
-    private _maxY: number;
-
-    get maxY(): number {
-        return this._maxY;
-    }
-
+class Region implements Bound {
     static fromBound(bound: LatLngBounds): Region {
         const sw = bound.getSouthWest(), ne = bound.getNorthEast();
         return new Region(sw.lat(), sw.lng(), ne.lat(), ne.lng());
     }
 
-    private constructor(minX: number, minY: number, maxX: number, maxY: number) {
-        this._minX = minX;
-        this._minY = minY;
-        this._maxX = maxX;
-        this._maxY = maxY;
+    private constructor(readonly minX: number, readonly minY: number,
+                        readonly maxX: number, readonly maxY: number) {
     }
 }
 
 class Point extends Record {
-    private _bound: Region;
+    bound: Region;
 
-    get bound() {
-        return this._bound;
-    }
-
-    set bound(bound: LatLngBounds | Region) {
-        if(bound instanceof Region)
-            this._bound = bound;
-        else
-            this._bound = Region.fromBound(bound);
-    }
-
-    private _marker: Marker;
-
-    get marker(): Marker {
-        return this._marker;
-    }
-
-    private _rectangle: Rectangle;
-
-    get pos(): LatLng {
-        return this._pos;
-    }
-
-    get rectangle(): Rectangle {
-        return this._rectangle;
-    }
-
-    constructor(pos: LatLng, marker: Marker, rectangle: Rectangle, place: PlaceResult) {
+    constructor(pos: LatLng, readonly marker: Marker, readonly rectangle: Rectangle,
+                place: PlaceResult) {
         super(pos, place);
-        this._bound = Region.fromBound(rectangle.getBounds());
-        this._marker = marker;
-        this._rectangle = rectangle;
+        this.bound = Region.fromBound(rectangle.getBounds());
     }
 }
 
@@ -135,47 +77,40 @@ export interface MapComponentProps {
     updateSearchBounds: UnaryFunction<LatLngBounds, void>;
 }
 
-export interface Params {
-    x: number;
-    y: number;
+export interface Params extends Coordinate {
     place?: PlaceResult;
 }
 
 export class MapComponent extends React.Component<MapComponentProps> {
-    private mapContainer: React.ReactInstance;
+    private mapContainer: HTMLDivElement;
     private map: google.maps.Map;
-    private tree: rbush;
+    private maxOverlap: number;
     private points: Map<string, Point>;
     private query: Query;
-    private currOpacity: number;
-    private _size: number;
 
     get size(): number {
-        return this._size;
+        return this.points.size;
     }
 
     get bounds(): LatLngBounds {
         return this.map.getBounds();
     }
 
+    private get currOpacity(): number {
+        return 0.8 / this.maxOverlap;
+    }
+
     constructor(props: MapComponentProps) {
         super(props);
 
-        this.tree = new rbush();
-        this.points = new Map<string, Point>();
-        this._size = 0;
+        this.maxOverlap = 0;
+        this.map = null;
+        this.points = new Map();
         this.query = { height: 10, width: 10 };
-        this.currOpacity = 0;
     }
 
     componentDidMount() {
-        // create map when the component mount
-        this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
-            center: { lat: -27.25, lng: 132.416667 }, zoom: 4, fullscreenControl: false,
-            streetViewControl: false
-        });
-        this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
-        this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
+        this.createMap();
     }
 
     addPoint(x: number, y: number, place?: PlaceResult): void {
@@ -184,28 +119,22 @@ export class MapComponent extends React.Component<MapComponentProps> {
         if(!p)
             return;
 
-        this.tree.insert(p.bound);
-        ++this._size;
         this.updateOpacity();
-
         this.props.updateHistory();
     }
 
     addPoints(poss: Array<Params>): void {
-        let pbs = [];
-        for(const { x, y, place } of poss) {
+        let c = 0;
+        poss.forEach(({ x, y, place }) => {
             let p = this.createPoint(x, y, place);
             if(p)
-                pbs.push(p.bound);
-        }
+                ++c;
+        });
 
-        if(pbs.length === 0)
+        if(c === 0)
             return;
 
-        this.tree.load(pbs);
-        this._size += pbs.length;
         this.updateOpacity();
-
         this.props.updateHistory();
     }
 
@@ -217,33 +146,20 @@ export class MapComponent extends React.Component<MapComponentProps> {
         let points = [];
         this.points.forEach(v => {
             v.rectangle.setBounds(this.calcBound(v.pos));
-            v.bound = v.rectangle.getBounds();
+            v.bound = Region.fromBound(v.rectangle.getBounds());
             points.push(v.bound);
         });
 
-        // reset RTree index, reinsert all points
-        this.tree = new rbush();
-        this.tree.load(points);
         this.updateOpacity();
     }
 
     clear(): void {
-        // reset the whole map
-        this.map = new google.maps.Map(findDOMNode(this.mapContainer), {
-            center: this.map.getCenter(), zoom: this.map.getZoom(), fullscreenControl: false,
-            streetViewControl: false
-        });
-        this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
-        this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
+        this.createMap();
 
         // reset all points
         this.points = new Map<string, Point>();
-        this._size = 0;
 
-        // reset RTree index
-        this.tree = new rbush();
-
-        this.currOpacity = 0;
+        this.maxOverlap = 0;
 
         this.props.resetSearch();
     }
@@ -284,6 +200,37 @@ export class MapComponent extends React.Component<MapComponentProps> {
         };
     }
 
+    private createMap(): void {
+        const node = findDOMNode(this.mapContainer);
+
+        if(this.map)
+            this.map = new google.maps.Map(node, {
+                center: this.map.getCenter(), zoom: this.map.getZoom(), fullscreenControl: false,
+                streetViewControl: false
+            });
+        else {
+            let pos = { lat: -27.25, lng: 132.416667 };
+            if(navigator.geolocation)
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        this.map.setCenter(pos);
+                        this.map.setZoom(8);
+                    },
+                    () => alert('location service disabled')
+                );
+            this.map = new google.maps.Map(node, {
+                center: pos, zoom: 4, fullscreenControl: false,
+                streetViewControl: false
+            });
+        }
+        this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
+        this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
+    }
+
     private createPoint(x: number, y: number, place: PlaceResult): Point {
         let p = this.points.get(stringifyCoordinate(x, y));
         if(p)
@@ -309,7 +256,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
                     map: this.map,
                     bounds: this.calcBound(c),
                     fillOpacity: this.currOpacity,
-                    fillColor: 'Gray',
+                    fillColor: 'Black',
                     strokeOpacity: 0,
                     clickable: false
                 }
@@ -317,22 +264,22 @@ export class MapComponent extends React.Component<MapComponentProps> {
             place
         );
 
+        p.marker.addListener('rightclick', e => this.remove(e.latLng.lat(), e.latLng.lng()));
+
         this.points.set(p.toKey(), p);
 
         return p;
     }
 
+    // calculate maximum overlap by CREST algorithm
+    private crestMaxOverlap(): number {
+        return 1;
+    }
+
     private updateOpacity(): void {
-        // calculate the maximum overlapping
-        let maxOverlap = 0;
-        this.points.forEach(v => {
-            let overlap = knn(this.tree, v.x, v.y, 0);
-            if(overlap > maxOverlap)
-                maxOverlap = overlap;
-        });
+        this.maxOverlap = this.crestMaxOverlap();
 
         // update opacity of each rectangles
-        this.currOpacity = 0.8 / maxOverlap;
         this.points.forEach(v => {
             // adjust opacity according the weight
             v.rectangle.setOptions({ fillOpacity: this.currOpacity });
