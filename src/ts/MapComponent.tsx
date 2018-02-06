@@ -331,6 +331,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
             return l.minY - r.minY;
         });
 
+        // line sweep affected regions
+
         this.maxOverlap = 1;
 
         // update opacity of each rectangles
