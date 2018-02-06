@@ -1,0 +1,4 @@
+class RSHeatMap {
+public:
+    RSHeatMap();
+};

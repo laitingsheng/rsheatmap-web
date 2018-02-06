@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import { Action, UnaryFunction } from './Functions';
+import RSHeatMap from './Module';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -87,6 +88,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
     private maxOverlap: number;
     private points: Map<string, Point>;
     private query: Query;
+    private rshm: RSHeatMap;
 
     get size(): number {
         return this.points.size;
@@ -107,6 +109,9 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.map = null;
         this.points = new Map();
         this.query = { height: 10, width: 10 };
+        this.rshm = new RSHeatMap();
+
+        alert(typeof this.rshm);
     }
 
     componentDidMount() {
