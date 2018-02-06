@@ -1,4 +1,0 @@
-class RSHeatMap {
-public:
-    RSHeatMap();
-};

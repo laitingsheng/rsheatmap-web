@@ -38,6 +38,7 @@ class Header extends React.Component<HeaderProps> {
         });
     }
 
+    // attach to bound_changed event and obtain the current bound of the map
     setSearchBounds(bounds: LatLngBounds): void {
         this.searchBox.setBounds(bounds);
     }
@@ -79,6 +80,7 @@ class Header extends React.Component<HeaderProps> {
         this.placeSearch.placeholder = 'Search Place';
     }
 
+    // toggle to <History>
     private history(event: React.FormEvent<any>): void {
         event.preventDefault();
         this.h.classList.remove('active');
@@ -86,6 +88,7 @@ class Header extends React.Component<HeaderProps> {
         this.props.history();
     }
 
+    // toggle to <Input>
     private input(event: React.FormEvent<any>): void {
         event.preventDefault();
         this.i.classList.remove('active');

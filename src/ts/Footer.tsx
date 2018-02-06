@@ -19,6 +19,7 @@ export class Footer extends React.PureComponent<{}, FooterState> {
         this.update = this.update.bind(this);
     }
 
+    // simulate clock tick
     componentDidMount() {
         this.timerID = setInterval(
             this.update,

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
+import rbush from 'rbush';
 import { Action, UnaryFunction } from './Functions';
-import RSHeatMap from './Module';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -47,13 +47,18 @@ export interface Bound {
 }
 
 class Region implements Bound {
-    static fromBound(bound: LatLngBounds): Region {
+    static fromLatLngBound(bound: LatLngBounds): Region {
         const sw = bound.getSouthWest(), ne = bound.getNorthEast();
         return new Region(sw.lat(), sw.lng(), ne.lat(), ne.lng());
     }
 
     private constructor(readonly minX: number, readonly minY: number,
                         readonly maxX: number, readonly maxY: number) {
+        this.toString = this.toKey;
+    }
+
+    toKey(): string {
+        return `${this.minX} ${this.minY} ${this.maxX} ${this.maxY}`;
     }
 }
 
@@ -63,7 +68,7 @@ class Point extends Record {
     constructor(pos: LatLng, readonly marker: Marker, readonly rectangle: Rectangle,
                 place: PlaceResult) {
         super(pos, place);
-        this.bound = Region.fromBound(rectangle.getBounds());
+        this.bound = Region.fromLatLngBound(rectangle.getBounds());
     }
 }
 
@@ -79,16 +84,16 @@ export interface MapComponentProps {
 }
 
 export interface Params extends Coordinate {
-    place?: PlaceResult;
+    readonly place?: PlaceResult;
 }
 
 export class MapComponent extends React.Component<MapComponentProps> {
+    private index: rbush;
     private mapContainer: HTMLDivElement;
     private map: google.maps.Map;
     private maxOverlap: number;
     private points: Map<string, Point>;
     private query: Query;
-    private rshm: RSHeatMap;
 
     get size(): number {
         return this.points.size;
@@ -105,13 +110,11 @@ export class MapComponent extends React.Component<MapComponentProps> {
     constructor(props: MapComponentProps) {
         super(props);
 
+        this.index = new rbush();
         this.maxOverlap = 0;
         this.map = null;
         this.points = new Map();
         this.query = { height: 10, width: 10 };
-        this.rshm = new RSHeatMap();
-
-        alert(typeof this.rshm);
     }
 
     componentDidMount() {
@@ -119,27 +122,31 @@ export class MapComponent extends React.Component<MapComponentProps> {
     }
 
     addPoint(x: number, y: number, place?: PlaceResult): void {
-        let p = this.createPoint(x, y, place);
+        const p = this.createPoint(x, y, place);
 
         if(!p)
             return;
 
-        this.updateOpacity();
+        alert(p.toString());
+
+        this.index.insert(p.bound);
+        this.updateOpacity([p.bound]);
         this.props.updateHistory();
     }
 
     addPoints(poss: Array<Params>): void {
-        let c = 0;
+        const bounds = [];
         poss.forEach(({ x, y, place }) => {
             let p = this.createPoint(x, y, place);
             if(p)
-                ++c;
+                bounds.push(p.bound);
         });
 
-        if(c === 0)
+        if(bounds.length === 0)
             return;
 
-        this.updateOpacity();
+        this.index.load(bounds);
+        this.updateOpacity(bounds);
         this.props.updateHistory();
     }
 
@@ -148,12 +155,16 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.query.width = queryWidth;
 
         // change boundaries
-        let points = [];
+        const bounds = [];
         this.points.forEach(v => {
             v.rectangle.setBounds(this.calcBound(v.pos));
-            v.bound = Region.fromBound(v.rectangle.getBounds());
-            points.push(v.bound);
+            v.bound = Region.fromLatLngBound(v.rectangle.getBounds());
+            bounds.push(v.bound);
         });
+
+        // reset index
+        this.index = new rbush();
+        this.index.load(bounds);
 
         this.updateOpacity();
     }
@@ -164,6 +175,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         // reset all points
         this.points = new Map<string, Point>();
 
+        this.index = new rbush();
         this.maxOverlap = 0;
 
         this.props.resetSearch();
@@ -173,18 +185,24 @@ export class MapComponent extends React.Component<MapComponentProps> {
         return Array.from(this.points.values());
     }
 
-    remove(x: number, y: number): void {
-        const key = stringifyCoordinate(x, y);
-        const p = this.points.get(key);
-        if(!p)
-            return;
+    removePoint(x: number, y: number): void {
+        if(this.deletePoint(x, y)) {
+            this.updateOpacity();
+            this.props.updateHistory();
+        }
+    }
 
-        p.marker.setMap(null);
-        p.rectangle.setMap(null);
+    removePoints(points: Array<Coordinate>): void {
+        let c = 0;
+        points.forEach(p => {
+            if(this.deletePoint(p.x, p.y))
+                ++c;
+        });
 
-        this.points.delete(key);
-
-        this.props.updateHistory();
+        if(c) {
+            this.updateOpacity();
+            this.props.updateHistory();
+        }
     }
 
     // there is no need to update the component
@@ -269,26 +287,54 @@ export class MapComponent extends React.Component<MapComponentProps> {
             place
         );
 
-        p.marker.addListener('rightclick', e => this.remove(e.latLng.lat(), e.latLng.lng()));
+        p.marker.addListener('rightclick', e => this.removePoint(e.latLng.lat(), e.latLng.lng()));
 
         this.points.set(p.toKey(), p);
 
         return p;
     }
 
-    // calculate maximum overlap by CREST algorithm
-    private crestMaxOverlap(): number {
-        return 1;
+    private deletePoint(x: number, y: number) {
+        const key = stringifyCoordinate(x, y);
+        const p = this.points.get(key);
+        if(!p)
+            return null;
+
+        this.index.remove(p.bound);
+        p.marker.setMap(null);
+        p.rectangle.setMap(null);
+        this.points.delete(key);
+
+        return p;
     }
 
-    private updateOpacity(): void {
-        this.maxOverlap = this.crestMaxOverlap();
+    private updateOpacity(inserted?: Array<Region>): void {
+        // determined affected regions
+        if(inserted) {
+            const cs = new Set<Region>();
+            inserted.forEach(r => {
+                cs.add(r);
+                const ins = this.index.search(r);
+                ins.forEach(cs.add);
+            });
+            inserted = Array.from(cs.values());
+        } else {
+            inserted = [];
+            this.points.forEach(v => inserted.push(v.bound));
+        }
+
+        // compute maximum overlapping by CREST, first sort the regions to be line-swept
+        inserted.sort((l, r) => {
+            let re = l.minX - r.minX;
+            if(re)
+                return re;
+            return l.minY - r.minY;
+        });
+
+        this.maxOverlap = 1;
 
         // update opacity of each rectangles
-        this.points.forEach(v => {
-            // adjust opacity according the weight
-            v.rectangle.setOptions({ fillOpacity: this.currOpacity });
-        });
+        this.points.forEach(v => v.rectangle.setOptions({ fillOpacity: this.currOpacity }));
     }
 }
 

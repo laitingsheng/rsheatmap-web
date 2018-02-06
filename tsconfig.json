@@ -9,6 +9,7 @@
       "DOM.Iterable",
       "ScriptHost"
     ],
+    "importHelpers": true,
     "sourceMap": true,
     "alwaysStrict": true,
     "declaration": true,

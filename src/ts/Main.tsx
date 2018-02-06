@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Action, BiFunction, UnaryFunction } from './Functions';
-import MapComponent, { Params, Record } from './MapComponent';
+import MapComponent, { Coordinate, Params, Record } from './MapComponent';
 import '../css/Component.css';
 import '../css/Map.css';
 import LatLngBounds = google.maps.LatLngBounds;
@@ -53,10 +53,9 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
             lng: undefined
         };
 
-        // bindings
         this.addPoint = this.addPoint.bind(this);
         this.resetPoints = this.resetPoints.bind(this);
-        this.generate = this.generate.bind(this);
+        this.change = this.change.bind(this);
     }
 
     render() {
@@ -78,7 +77,7 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
                         Clear
                     </button>
                 </form>
-                <form className="wrap-full-box wrap-inner-box" onSubmit={this.generate}>
+                <form className="wrap-full-box wrap-inner-box" onSubmit={this.change}>
                     <Title text="Query Region"/>
                     <InputNumberBox name="Height (km)" id="height" min="0"
                                     placeholder={this.state.height.toString()}
@@ -103,7 +102,7 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
         this.props.clear();
     }
 
-    private generate(event: any) {
+    private change(event: React.FormEvent<any>) {
         event.preventDefault();
         this.props.changeRegion(Number(this.state.height), Number(this.state.width));
     }
@@ -111,18 +110,23 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
 
 interface HistoryProps {
     generate: Action<Array<Record>>;
-    remove: BiFunction<number, number, void>;
+    remove: UnaryFunction<Array<Coordinate>, void>;
 }
 
 class Row {
-    record: Record;
-    rowRef: Array<HTMLTableCellElement>;
+    cellRefs: Array<HTMLTableCellElement>;
     selected: boolean;
 
-    constructor(candidate: Record) {
-        this.record = candidate;
-        this.rowRef = null;
+    constructor(public candidate: Record) {
+        this.cellRefs = null;
         this.selected = false;
+
+        this.select = this.select.bind(this);
+    }
+
+    select(): void {
+        this.selected = !this.selected;
+        this.cellRefs.forEach(c => c.bgColor = this.selected ? 'lightgrey' : 'white');
     }
 }
 
@@ -137,6 +141,7 @@ class History extends React.Component<HistoryProps> {
         this.removePoints = this.removePoints.bind(this);
     }
 
+    // update controlled manually
     shouldComponentUpdate() {
         return false;
     }
@@ -158,21 +163,21 @@ class History extends React.Component<HistoryProps> {
                             let row = this.selection.get(r.toKey());
                             if(!row) {
                                 row = new Row(r);
-                                row.rowRef = new Array(3);
+                                row.cellRefs = new Array(3);
                                 this.selection.set(r.toKey(), row);
                             }
                             return (
-                                <tr onClick={this.generateAction(r)} key={r.toKey()}>
+                                <tr onClick={row.select} key={r.toKey()}>
                                     <td className="col-md-3"
-                                        ref={ref => row.rowRef[0] = ref}>
+                                        ref={ref => row.cellRefs[0] = ref}>
                                         {r.x.toFixed(6)}
                                     </td>
                                     <td className="col-md-3"
-                                        ref={ref => row.rowRef[1] = ref}>
+                                        ref={ref => row.cellRefs[1] = ref}>
                                         {r.y.toFixed(6)}
                                     </td>
                                     <td className="col-md-6"
-                                        ref={ref => row.rowRef[2] = ref}>
+                                        ref={ref => row.cellRefs[2] = ref}>
                                         {r.place && r.place.name}
                                     </td>
                                 </tr>
@@ -186,23 +191,14 @@ class History extends React.Component<HistoryProps> {
         );
     }
 
-    private generateAction(r: Record): Action<void> {
-        return () => {
-            const row = this.selection.get(r.toKey());
-            row.selected = !row.selected;
-            row.rowRef.forEach(c => c.bgColor = row.selected ? 'lightgrey' : 'white');
-        };
-    }
-
     private removePoints(event: React.FormEvent<any>) {
         event.preventDefault();
 
         const candidates = [];
-        this.selection.forEach(v => v.selected && candidates.push(v.record));
-        candidates.forEach(v => {
-            this.selection.delete(v.toKey());
-            this.props.remove(v.x, v.y);
-        });
+        this.selection.forEach(v => v.selected && candidates.push(v.candidate));
+        this.props.remove(candidates);
+
+        this.selection = new Map();
     }
 }
 
@@ -229,10 +225,11 @@ export class Main extends React.Component<MainProps, MainState> {
         this.changeRegion = this.changeRegion.bind(this);
         this.clear = this.clear.bind(this);
         this.generate = this.generate.bind(this);
-        this.removePoint = this.removePoint.bind(this);
+        this.removePoints = this.removePoints.bind(this);
         this.updateHistory = this.updateHistory.bind(this);
     }
 
+    // update controlled manually
     shouldComponentUpdate() {
         return false;
     }
@@ -243,7 +240,7 @@ export class Main extends React.Component<MainProps, MainState> {
                 <div className="wrap-box">
                     {
                         this.state.history ?
-                            <History generate={this.generate} remove={this.removePoint}
+                            <History generate={this.generate} remove={this.removePoints}
                                      ref={ref => this.history = ref}/>
                             :
                             <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
@@ -263,11 +260,13 @@ export class Main extends React.Component<MainProps, MainState> {
         this.props.updateCount(this.map.size);
     }
 
+    // toggle to <History>
     hist(): void {
         this.setState({ history: true });
         this.forceUpdate();
     }
 
+    // toggle to <Input>
     input(): void {
         this.setState({ history: false });
         this.forceUpdate();
@@ -291,10 +290,11 @@ export class Main extends React.Component<MainProps, MainState> {
         return this.map.generateRecords();
     }
 
-    private removePoint(x: number, y: number) {
-        this.map.remove(x, y);
+    private removePoints(points: Array<Coordinate>) {
+        this.map.removePoints(points);
     }
 
+    // handler to <MapComponent> when add/remove a point
     private updateHistory(): void {
         if(this.history)
             this.history.forceUpdate();
