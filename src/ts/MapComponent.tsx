@@ -94,9 +94,15 @@ export interface Params extends Coordinate {
     readonly place?: PlaceResult;
 }
 
+class SortedArray<T> extends Array<T> {
+    constructor(...iterable: Array<T>) {
+        super(...iterable);
+    }
+}
+
 function lineSweepCREST(candidates: Array<Region>): number {
-    // store and sort critical events
-    const ticks: Array<{
+    // store critical events in order
+    const ticks: SortedArray<{
         tick: number;
         region: Region;
         open: number;
@@ -104,19 +110,6 @@ function lineSweepCREST(candidates: Array<Region>): number {
     candidates.forEach(r => {
         ticks.push({ tick: r.minX, region: r, open: 1 });
         ticks.push({ tick: r.maxX, region: r, open: 0 });
-    });
-    ticks.sort((l, r) => {
-        // first by value
-        let re = l.tick - r.tick;
-        if(re)
-            return re;
-
-        // close tick always precede open tick
-        if(re = l.open - r.open)
-            return re;
-
-        // then see y-direction
-        return l.region.minY - r.region.minY;
     });
 
     // line-sweep
