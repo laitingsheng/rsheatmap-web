@@ -113,7 +113,7 @@ function lineSweepCREST(candidates: Array<Region>): number {
     });
 
     // line-sweep
-    let maxOverlap = 1, line: Array<{
+    let maxOverlap = 1, line: SortedArray<{
         tick: number;
         open: number;
     }> = [];
