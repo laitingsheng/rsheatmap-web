@@ -56,6 +56,13 @@ class Region implements Bound {
         return `${this.minX} ${this.minY} ${this.maxX} ${this.maxY}`;
     }
 
+    compareTo(o: Region): number {
+        let re = this.minX - o.minX;
+        if(re)
+            return re;
+        return this.minY - o.minY;
+    }
+
     private constructor(readonly minX: number, readonly minY: number,
                         readonly maxX: number, readonly maxY: number) {
         this.toString = this.toKey;
@@ -85,6 +92,45 @@ export interface MapComponentProps {
 
 export interface Params extends Coordinate {
     readonly place?: PlaceResult;
+}
+
+function lineSweepCREST(candidates: Array<Region>): number {
+    // store and sort critical events
+    const ticks: Array<{
+        tick: number;
+        region: Region;
+        open: number;
+    }> = [];
+    candidates.forEach(r => {
+        ticks.push({ tick: r.minX, region: r, open: 1 });
+        ticks.push({ tick: r.maxX, region: r, open: 0 });
+    });
+    ticks.sort((l, r) => {
+        // first by value
+        let re = l.tick - r.tick;
+        if(re)
+            return re;
+
+        // close tick always precede open tick
+        if(re = l.open - r.open)
+            return re;
+
+        // then see y-direction
+        return l.region.minY - r.region.minY;
+    });
+
+    // line-sweep
+    let maxOverlap = 1, line: Array<{
+        tick: number;
+        open: number;
+    }> = [];
+    ticks.forEach(t => {
+        if(t.open) {
+        } else {
+        }
+    });
+
+    return maxOverlap;
 }
 
 export class MapComponent extends React.Component<MapComponentProps> {
@@ -135,7 +181,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
     }
 
     addPoints(poss: Array<Params>): void {
-        const bounds = [];
+        const bounds: Array<Region> = [];
         poss.forEach(({ x, y, place }) => {
             let p = this.createPoint(x, y, place);
             if(p)
@@ -155,7 +201,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.query.width = queryWidth;
 
         // change boundaries
-        const bounds = [];
+        const bounds: Array<Bound> = [];
         this.points.forEach(v => {
             v.rectangle.setBounds(this.calcBound(v.pos));
             v.bound = Region.fromLatLngBound(v.rectangle.getBounds());
@@ -173,7 +219,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.createMap();
 
         // reset all points
-        this.points = new Map<string, Point>();
+        this.points = new Map();
 
         this.index = new rbush();
         this.maxOverlap = 0;
@@ -323,15 +369,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
             this.points.forEach(v => inserted.push(v.bound));
         }
 
-        // compute maximum overlapping by CREST, first sort the regions to be line-swept
-        inserted.sort((l, r) => {
-            let re = l.minX - r.minX;
-            if(re)
-                return re;
-            return l.minY - r.minY;
-        });
-
         // line sweep affected regions
+        this.maxOverlap = lineSweepCREST(inserted);
 
         this.maxOverlap = 1;
 
