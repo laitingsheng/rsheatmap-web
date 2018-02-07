@@ -52,13 +52,13 @@ class Region implements Bound {
         return new Region(sw.lat(), sw.lng(), ne.lat(), ne.lng());
     }
 
+    toKey(): string {
+        return `${this.minX} ${this.minY} ${this.maxX} ${this.maxY}`;
+    }
+
     private constructor(readonly minX: number, readonly minY: number,
                         readonly maxX: number, readonly maxY: number) {
         this.toString = this.toKey;
-    }
-
-    toKey(): string {
-        return `${this.minX} ${this.minY} ${this.maxX} ${this.maxY}`;
     }
 }
 

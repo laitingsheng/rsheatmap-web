@@ -121,10 +121,10 @@ class Row {
         this.cellRefs = null;
         this.selected = false;
 
-        this.select = this.select.bind(this);
+        this.onClick = this.onClick.bind(this);
     }
 
-    select(): void {
+    onClick(): void {
         this.selected = !this.selected;
         this.cellRefs.forEach(c => c.bgColor = this.selected ? 'lightgrey' : 'white');
     }
@@ -167,7 +167,7 @@ class History extends React.Component<HistoryProps> {
                                 this.selection.set(r.toKey(), row);
                             }
                             return (
-                                <tr onClick={row.select} key={r.toKey()}>
+                                <tr onClick={row.onClick} key={r.toKey()}>
                                     <td className="col-md-3"
                                         ref={ref => row.cellRefs[0] = ref}>
                                         {r.x.toFixed(6)}
