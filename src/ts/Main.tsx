@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Action, BiFunction, UnaryFunction } from './Functions';
+import { Action, BiFunction, UnaryFunction } from './Util';
 import MapComponent, { Coordinate, Params, Record } from './MapComponent';
 import '../css/Component.css';
 import '../css/Map.css';

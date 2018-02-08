@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Action, UnaryFunction } from './Functions';
+import { Action, UnaryFunction } from './Util';
 import { Params } from './MapComponent';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/App.css';

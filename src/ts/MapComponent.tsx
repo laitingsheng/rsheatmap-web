@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import rbush from 'rbush';
-import { Action, UnaryFunction } from './Functions';
+import { Action, Comparable, DataObject, Stringifiable, UnaryFunction } from './Util';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -21,7 +21,7 @@ export interface Coordinate {
     readonly y: number;
 }
 
-export class Record implements Coordinate {
+export class Record extends DataObject implements Coordinate, Comparable<Record>, Stringifiable {
     get x(): number {
         return this.pos.lat();
     }
@@ -31,7 +31,18 @@ export class Record implements Coordinate {
     }
 
     constructor(readonly pos: LatLng, readonly place: PlaceResult) {
+        super();
         this.toString = this.toKey;
+    }
+
+    compareTo(o: Record): number {
+        if(this === o)
+            return 0;
+
+        const re = this.x - o.x;
+        if(re)
+            return re;
+        return this.y - o.y;
     }
 
     toKey(): string {
@@ -46,26 +57,95 @@ export interface Bound {
     readonly maxY: number;
 }
 
-class Region implements Bound {
+class Tick extends DataObject implements Comparable<Tick>, Stringifiable {
+    readonly open: number;
+
+    constructor(readonly tick: number, readonly region: Region, open: boolean) {
+        super();
+        this.open = open ? 1 : 0;
+    }
+
+    [Symbol.toPrimitive](hint: string) {
+        if(hint === 'number')
+            return this.tick;
+
+        if(hint === 'string')
+            return this.toString();
+
+        return true;
+    }
+
+    compareTo(o: Tick): number {
+        if(this === o)
+            return 0;
+
+        let re = this.tick - o.tick;
+        if(re)
+            return re;
+        if(re = this.open - o.open)
+            return re;
+        return this.region.compareTo(o.region);
+    }
+
+    toString(): string {
+        return `${this.tick} [${this.region}] ${this.open ? 'open' : 'close'}`;
+    }
+}
+
+class Region extends DataObject implements Bound, Comparable<Region>, Stringifiable {
+    readonly minXTick: Tick;
+    readonly maxXTick: Tick;
+    readonly minYTick: Tick;
+    readonly maxYTick: Tick;
+
+    get minX(): number {
+        return +this.minXTick;
+    }
+
+    get minY(): number {
+        return +this.maxXTick;
+    }
+
+    get maxX(): number {
+        return +this.minYTick;
+    }
+
+    get maxY(): number {
+        return +this.maxYTick;
+    }
+
     static fromLatLngBound(bound: LatLngBounds): Region {
         const sw = bound.getSouthWest(), ne = bound.getNorthEast();
         return new Region(sw.lat(), sw.lng(), ne.lat(), ne.lng());
     }
 
-    toKey(): string {
-        return `${this.minX} ${this.minY} ${this.maxX} ${this.maxY}`;
+    private constructor(minX: number, minY: number, maxX: number, maxY: number) {
+        super();
+
+        this.toString = this.toKey;
+
+        this.minXTick = new Tick(minX, this, true);
+        this.maxXTick = new Tick(maxX, this, false);
+        this.minYTick = new Tick(minY, this, true);
+        this.maxYTick = new Tick(maxY, this, false);
     }
 
     compareTo(o: Region): number {
+        if(this === o)
+            return 0;
+
         let re = this.minX - o.minX;
         if(re)
             return re;
-        return this.minY - o.minY;
+        if(re = this.maxX - o.maxX)
+            return re;
+        if(re = this.minY - o.minY)
+            return re;
+        return this.maxY - o.maxY;
     }
 
-    private constructor(readonly minX: number, readonly minY: number,
-                        readonly maxX: number, readonly maxY: number) {
-        this.toString = this.toKey;
+    toKey(): string {
+        return `${this.minX} ${this.minY} ${this.maxX} ${this.maxY}`;
     }
 }
 
@@ -94,32 +174,20 @@ export interface Params extends Coordinate {
     readonly place?: PlaceResult;
 }
 
-class SortedArray<T> extends Array<T> {
-    constructor(...iterable: Array<T>) {
-        super(...iterable);
-    }
-}
-
 function lineSweepCREST(candidates: Array<Region>): number {
+    let maxOverlap = 1;
+
     // store critical events in order
-    const ticks: SortedArray<{
-        tick: number;
-        region: Region;
-        open: number;
-    }> = [];
-    candidates.forEach(r => {
-        ticks.push({ tick: r.minX, region: r, open: 1 });
-        ticks.push({ tick: r.maxX, region: r, open: 0 });
-    });
+    const ticks: Array<Tick> = [];
+    candidates.forEach(r => ticks.push(new Tick(r.minX, r, true), new Tick(r.minX, r, false)));
 
     // line-sweep
-    let maxOverlap = 1, line: SortedArray<{
-        tick: number;
-        open: number;
-    }> = [];
-    ticks.forEach(t => {
-        if(t.open) {
-        } else {
+    let sweep: Array<Tick> = [];
+    ticks.forEach(tick => {
+        if(tick.open) {
+            sweep.push(new Tick(tick.region.minY, tick.region, true),
+                       new Tick(tick.region.maxY, tick.region, false));
+            sweep.sort((l, r) => l.compareTo(r));
         }
     });
 
@@ -165,8 +233,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
         if(!p)
             return;
-
-        alert(p.toString());
 
         this.index.insert(p.bound);
         this.updateOpacity([p.bound]);
