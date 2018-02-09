@@ -1,7 +1,15 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import rbush from 'rbush';
-import { Action, binarySearch, Comparable, compareFunction, DataObject, Function } from './Util';
+import {
+    Action,
+    binarySearch,
+    Comparable,
+    compareFunction,
+    DataObject,
+    Function,
+    rgb
+} from './DataStructure/Util';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -229,8 +237,9 @@ export class MapComponent extends React.Component<MapComponentProps> {
         return this.map.getBounds();
     }
 
-    private get currOpacity(): number {
-        return 0.8 / this.maxOverlap;
+    private get grayScale(): string {
+        const g = Math.floor(255 / this.maxOverlap);
+        return rgb(g, g, g);
     }
 
     componentDidMount() {
@@ -402,8 +411,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
                 {
                     map: this.map,
                     bounds: this.calcBound(c),
-                    fillOpacity: this.currOpacity,
-                    fillColor: 'Black',
+                    fillOpacity: 0.4,
+                    fillColor: this.grayScale,
                     strokeOpacity: 0,
                     clickable: false
                 }
@@ -448,10 +457,13 @@ export class MapComponent extends React.Component<MapComponentProps> {
         }
 
         // line sweep affected regions
-        this.maxOverlap = lineSweepCREST(inserted);
+        const maxOverlap = lineSweepCREST(inserted);
+        if(maxOverlap <= this.maxOverlap)
+            return;
+        this.maxOverlap = maxOverlap;
 
         // update opacity of each rectangles
-        this.points.forEach(v => v.rectangle.setOptions({ fillOpacity: this.currOpacity }));
+        this.points.forEach(v => v.rectangle.setOptions({ fillColor: this.grayScale }));
     }
 }
 
