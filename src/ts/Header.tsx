@@ -18,13 +18,6 @@ class Header extends React.Component<HeaderProps> {
     private h: HTMLLIElement;
     private i: HTMLLIElement;
 
-    constructor(props: HeaderProps) {
-        super(props);
-
-        this.history = this.history.bind(this);
-        this.input = this.input.bind(this);
-    }
-
     componentDidMount() {
         this.searchBox = new SearchBox(this.placeSearch);
 
@@ -78,6 +71,13 @@ class Header extends React.Component<HeaderProps> {
 
     resetSearch(): void {
         this.placeSearch.placeholder = 'Search Place';
+    }
+
+    constructor(props: HeaderProps) {
+        super(props);
+
+        this.history = this.history.bind(this);
+        this.input = this.input.bind(this);
     }
 
     // toggle to <History>

@@ -43,21 +43,6 @@ interface InputFormState {
 }
 
 class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
-    constructor(props: InputFormProps) {
-        super(props);
-
-        this.state = {
-            height: 10,
-            width: 10,
-            lat: undefined,
-            lng: undefined
-        };
-
-        this.addPoint = this.addPoint.bind(this);
-        this.resetPoints = this.resetPoints.bind(this);
-        this.change = this.change.bind(this);
-    }
-
     render() {
         return (
             <>
@@ -93,6 +78,21 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
         );
     }
 
+    constructor(props: InputFormProps) {
+        super(props);
+
+        this.state = {
+            height: 10,
+            width: 10,
+            lat: undefined,
+            lng: undefined
+        };
+
+        this.addPoint = this.addPoint.bind(this);
+        this.resetPoints = this.resetPoints.bind(this);
+        this.change = this.change.bind(this);
+    }
+
     private addPoint(event: React.FormEvent<any>) {
         event.preventDefault();
         this.props.addPoint(Number(this.state.lat), Number(this.state.lng));
@@ -117,29 +117,21 @@ class Row {
     cellRefs: Array<HTMLTableCellElement>;
     selected: boolean;
 
+    onClick(): void {
+        this.selected = !this.selected;
+        this.cellRefs.forEach(c => c.bgColor = this.selected ? 'lightgrey' : 'white');
+    }
+
     constructor(public candidate: Record) {
         this.cellRefs = null;
         this.selected = false;
 
         this.onClick = this.onClick.bind(this);
     }
-
-    onClick(): void {
-        this.selected = !this.selected;
-        this.cellRefs.forEach(c => c.bgColor = this.selected ? 'lightgrey' : 'white');
-    }
 }
 
 class History extends React.Component<HistoryProps> {
     private selection: Map<string, Row>;
-
-    constructor(props: HistoryProps) {
-        super(props);
-
-        this.selection = new Map();
-
-        this.removePoints = this.removePoints.bind(this);
-    }
 
     // update controlled manually
     shouldComponentUpdate() {
@@ -191,6 +183,14 @@ class History extends React.Component<HistoryProps> {
         );
     }
 
+    constructor(props: HistoryProps) {
+        super(props);
+
+        this.selection = new Map();
+
+        this.removePoints = this.removePoints.bind(this);
+    }
+
     private removePoints(event: React.FormEvent<any>) {
         event.preventDefault();
 
@@ -215,19 +215,6 @@ export interface MainState {
 export class Main extends React.Component<MainProps, MainState> {
     private history: History;
     private map: MapComponent;
-
-    constructor(props: MainProps) {
-        super(props);
-
-        this.state = { history: false };
-
-        this.addPoint = this.addPoint.bind(this);
-        this.changeRegion = this.changeRegion.bind(this);
-        this.clear = this.clear.bind(this);
-        this.generate = this.generate.bind(this);
-        this.removePoints = this.removePoints.bind(this);
-        this.updateHistory = this.updateHistory.bind(this);
-    }
 
     // update controlled manually
     shouldComponentUpdate() {
@@ -270,6 +257,19 @@ export class Main extends React.Component<MainProps, MainState> {
     input(): void {
         this.setState({ history: false });
         this.forceUpdate();
+    }
+
+    constructor(props: MainProps) {
+        super(props);
+
+        this.state = { history: false };
+
+        this.addPoint = this.addPoint.bind(this);
+        this.changeRegion = this.changeRegion.bind(this);
+        this.clear = this.clear.bind(this);
+        this.generate = this.generate.bind(this);
+        this.removePoints = this.removePoints.bind(this);
+        this.updateHistory = this.updateHistory.bind(this);
     }
 
     private addPoint(x: number, y: number): void {

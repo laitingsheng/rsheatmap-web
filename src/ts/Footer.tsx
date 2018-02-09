@@ -10,15 +10,6 @@ export class Footer extends React.PureComponent<{}, FooterState> {
     private timerID: NodeJS.Timer;
     private count: number;
 
-    constructor(props: {}) {
-        super(props);
-
-        this.count = 0;
-        this.state = { date: new Date() };
-
-        this.update = this.update.bind(this);
-    }
-
     // simulate clock tick
     componentDidMount() {
         this.timerID = setInterval(
@@ -49,6 +40,15 @@ export class Footer extends React.PureComponent<{}, FooterState> {
 
         // immediate update
         this.forceUpdate();
+    }
+
+    constructor(props: {}) {
+        super(props);
+
+        this.count = 0;
+        this.state = { date: new Date() };
+
+        this.update = this.update.bind(this);
     }
 
     private update() {

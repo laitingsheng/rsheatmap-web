@@ -30,11 +30,6 @@ export class Record extends DataObject implements Coordinate, Comparable<Record>
         return this.pos.lng();
     }
 
-    constructor(readonly pos: LatLng, readonly place: PlaceResult) {
-        super();
-        this.toString = this.toKey;
-    }
-
     compareTo(o: Record): number {
         if(this === o)
             return 0;
@@ -48,6 +43,11 @@ export class Record extends DataObject implements Coordinate, Comparable<Record>
     toKey(): string {
         return stringifyCoordinate(this.pos.lat(), this.pos.lng());
     }
+
+    constructor(readonly pos: LatLng, readonly place: PlaceResult) {
+        super();
+        this.toString = this.toKey;
+    }
 }
 
 export interface Bound {
@@ -59,11 +59,6 @@ export interface Bound {
 
 class Tick extends DataObject implements Comparable<Tick> {
     readonly open: number;
-
-    constructor(readonly tick: number, readonly region: Region, open: boolean) {
-        super();
-        this.open = Number(open);
-    }
 
     [Symbol.toPrimitive](hint: string) {
         if(hint === 'number')
@@ -89,6 +84,11 @@ class Tick extends DataObject implements Comparable<Tick> {
 
     toString(): string {
         return `${this.tick} ${this.region} ${this.open ? 'open' : 'close'}`;
+    }
+
+    constructor(readonly tick: number, readonly region: Region, open: boolean) {
+        super();
+        this.open = Number(open);
     }
 }
 
@@ -133,6 +133,10 @@ class Region extends DataObject implements Bound, Comparable<Region> {
         return this.maxY - o.maxY;
     }
 
+    toKey(): string {
+        return `[${this.minX} ${this.minY} ${this.maxX} ${this.maxY}]`;
+    }
+
     private constructor(minX: number, minY: number, maxX: number, maxY: number) {
         super();
 
@@ -142,10 +146,6 @@ class Region extends DataObject implements Bound, Comparable<Region> {
         this.maxXTick = new Tick(maxX, this, false);
         this.minYTick = new Tick(minY, this, true);
         this.maxYTick = new Tick(maxY, this, false);
-    }
-
-    toKey(): string {
-        return `[${this.minX} ${this.minY} ${this.maxX} ${this.maxY}]`;
     }
 }
 
@@ -231,16 +231,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
     private get currOpacity(): number {
         return 0.8 / this.maxOverlap;
-    }
-
-    constructor(props: MapComponentProps) {
-        super(props);
-
-        this.index = new rbush();
-        this.maxOverlap = 0;
-        this.map = null;
-        this.points = new Map();
-        this.query = { height: 10, width: 10 };
     }
 
     componentDidMount() {
@@ -336,6 +326,16 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
     render() {
         return <div className="map-canvas" ref={ref => this.mapContainer = ref}/>;
+    }
+
+    constructor(props: MapComponentProps) {
+        super(props);
+
+        this.index = new rbush();
+        this.maxOverlap = 0;
+        this.map = null;
+        this.points = new Map();
+        this.query = { height: 10, width: 10 };
     }
 
     private calcBound(c: LatLng): LatLngBoundsLiteral {
