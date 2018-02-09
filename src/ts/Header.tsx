@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Action, UnaryFunction } from './Util';
+import { Action, Function } from './Util';
 import { Params } from './MapComponent';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/App.css';
@@ -7,7 +7,7 @@ import LatLngBounds = google.maps.LatLngBounds;
 import SearchBox = google.maps.places.SearchBox;
 
 export interface HeaderProps {
-    addPoints: UnaryFunction<Array<Params>, void>;
+    addPoints: Function<Array<Params>, void>;
     history: Action<void>;
     input: Action<void>;
 }

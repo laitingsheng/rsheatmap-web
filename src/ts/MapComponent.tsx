@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import rbush from 'rbush';
-import { Action, Comparable, DataObject, Stringifiable, UnaryFunction } from './Util';
+import { Action, binarySearch, Comparable, compareFunction, DataObject, Function } from './Util';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -21,7 +21,7 @@ export interface Coordinate {
     readonly y: number;
 }
 
-export class Record extends DataObject implements Coordinate, Comparable<Record>, Stringifiable {
+export class Record extends DataObject implements Coordinate, Comparable<Record> {
     get x(): number {
         return this.pos.lat();
     }
@@ -57,12 +57,12 @@ export interface Bound {
     readonly maxY: number;
 }
 
-class Tick extends DataObject implements Comparable<Tick>, Stringifiable {
+class Tick extends DataObject implements Comparable<Tick> {
     readonly open: number;
 
     constructor(readonly tick: number, readonly region: Region, open: boolean) {
         super();
-        this.open = open ? 1 : 0;
+        this.open = Number(open);
     }
 
     [Symbol.toPrimitive](hint: string) {
@@ -88,11 +88,11 @@ class Tick extends DataObject implements Comparable<Tick>, Stringifiable {
     }
 
     toString(): string {
-        return `${this.tick} [${this.region}] ${this.open ? 'open' : 'close'}`;
+        return `${this.tick} ${this.region} ${this.open ? 'open' : 'close'}`;
     }
 }
 
-class Region extends DataObject implements Bound, Comparable<Region>, Stringifiable {
+class Region extends DataObject implements Bound, Comparable<Region> {
     readonly minXTick: Tick;
     readonly maxXTick: Tick;
     readonly minYTick: Tick;
@@ -119,17 +119,6 @@ class Region extends DataObject implements Bound, Comparable<Region>, Stringifia
         return new Region(sw.lat(), sw.lng(), ne.lat(), ne.lng());
     }
 
-    private constructor(minX: number, minY: number, maxX: number, maxY: number) {
-        super();
-
-        this.toString = this.toKey;
-
-        this.minXTick = new Tick(minX, this, true);
-        this.maxXTick = new Tick(maxX, this, false);
-        this.minYTick = new Tick(minY, this, true);
-        this.maxYTick = new Tick(maxY, this, false);
-    }
-
     compareTo(o: Region): number {
         if(this === o)
             return 0;
@@ -144,8 +133,19 @@ class Region extends DataObject implements Bound, Comparable<Region>, Stringifia
         return this.maxY - o.maxY;
     }
 
+    private constructor(minX: number, minY: number, maxX: number, maxY: number) {
+        super();
+
+        this.toString = this.toKey;
+
+        this.minXTick = new Tick(minX, this, true);
+        this.maxXTick = new Tick(maxX, this, false);
+        this.minYTick = new Tick(minY, this, true);
+        this.maxYTick = new Tick(maxY, this, false);
+    }
+
     toKey(): string {
-        return `${this.minX} ${this.minY} ${this.maxX} ${this.maxY}`;
+        return `[${this.minX} ${this.minY} ${this.maxX} ${this.maxY}]`;
     }
 }
 
@@ -167,7 +167,7 @@ export interface Query {
 export interface MapComponentProps {
     resetSearch: Action<void>;
     updateHistory: Action<void>;
-    updateSearchBounds: UnaryFunction<LatLngBounds, void>;
+    updateSearchBounds: Function<LatLngBounds, void>;
 }
 
 export interface Params extends Coordinate {
@@ -179,16 +179,35 @@ function lineSweepCREST(candidates: Array<Region>): number {
 
     // store critical events in order
     const ticks: Array<Tick> = [];
-    candidates.forEach(r => ticks.push(new Tick(r.minX, r, true), new Tick(r.minX, r, false)));
+    candidates.forEach(r => ticks.push(r.minXTick, r.maxXTick));
+    ticks.sort(compareFunction);
 
     // line-sweep
-    let sweep: Array<Tick> = [];
-    ticks.forEach(tick => {
-        if(tick.open) {
-            sweep.push(new Tick(tick.region.minY, tick.region, true),
-                       new Tick(tick.region.maxY, tick.region, false));
-            sweep.sort((l, r) => l.compareTo(r));
+    let sweep: Array<Tick> = [], prevTick: Tick;
+    ticks.forEach(xTick => {
+        let overlap = 0;
+        if(prevTick)
+            sweep.forEach(yTick => {
+                if(yTick.open)
+                    ++overlap;
+                else
+                    --overlap;
+
+                if(overlap > maxOverlap)
+                    maxOverlap = overlap;
+            });
+
+        if(xTick.open) {
+            sweep.push(xTick.region.minYTick, xTick.region.maxYTick);
+            sweep.sort(compareFunction);
+        } else {
+            binarySearch(sweep, 0, sweep.length, xTick.region.minYTick, compareFunction,
+                         index => sweep.splice(index, 1));
+            binarySearch(sweep, 0, sweep.length, xTick.region.maxYTick, compareFunction,
+                         index => sweep.splice(index, 1));
         }
+
+        prevTick = xTick;
     });
 
     return maxOverlap;
@@ -420,7 +439,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
             inserted.forEach(r => {
                 cs.add(r);
                 const ins = this.index.search(r);
-                ins.forEach(cs.add);
+                ins.forEach(cs.add.bind(cs));
             });
             inserted = Array.from(cs.values());
         } else {
@@ -430,8 +449,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
         // line sweep affected regions
         this.maxOverlap = lineSweepCREST(inserted);
-
-        this.maxOverlap = 1;
 
         // update opacity of each rectangles
         this.points.forEach(v => v.rectangle.setOptions({ fillOpacity: this.currOpacity }));

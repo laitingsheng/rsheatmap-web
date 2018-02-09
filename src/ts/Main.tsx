@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Action, BiFunction, UnaryFunction } from './Util';
+import { Action, BiFunction, Function } from './Util';
 import MapComponent, { Coordinate, Params, Record } from './MapComponent';
 import '../css/Component.css';
 import '../css/Map.css';
@@ -110,7 +110,7 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
 
 interface HistoryProps {
     generate: Action<Array<Record>>;
-    remove: UnaryFunction<Array<Coordinate>, void>;
+    remove: Function<Array<Coordinate>, void>;
 }
 
 class Row {
@@ -204,8 +204,8 @@ class History extends React.Component<HistoryProps> {
 
 export interface MainProps {
     resetSearch: Action<void>;
-    updateCount: UnaryFunction<number, void>;
-    updateSearchBounds: UnaryFunction<LatLngBounds, void>;
+    updateCount: Function<number, void>;
+    updateSearchBounds: Function<LatLngBounds, void>;
 }
 
 export interface MainState {
