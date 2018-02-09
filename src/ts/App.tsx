@@ -1,4 +1,5 @@
 import * as React from 'react';
+import HttpsRedirect from 'react-https-redirect';
 import Header from './Header';
 import Main from './Main';
 import Footer from './Footer';
@@ -12,13 +13,13 @@ export class App extends React.PureComponent<{}> {
 
     render() {
         return (
-            <>
+            <HttpsRedirect>
                 <Header addPoints={this.addPoints} history={this.history} input={this.input}
                         ref={ref => this.header = ref}/>
                 <Main updateCount={this.updateCount} updateSearchBounds={this.updateSearchBounds}
                       resetSearch={this.resetSearch} ref={ref => this.main = ref}/>
                 <Footer ref={ref => this.footer = ref}/>
-            </>
+            </HttpsRedirect>
         );
     }
 
