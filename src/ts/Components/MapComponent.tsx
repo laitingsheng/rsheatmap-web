@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
-import rbush from 'rbush';
 import {
     Action,
     binarySearch,
@@ -9,7 +8,7 @@ import {
     DataObject,
     Function,
     rgb
-} from './DataStructure/Util';
+} from '../Util';
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -222,7 +221,6 @@ function lineSweepCREST(candidates: Array<Region>): number {
 }
 
 export class MapComponent extends React.Component<MapComponentProps> {
-    private index: rbush;
     private mapContainer: HTMLDivElement;
     private map: google.maps.Map;
     private maxOverlap: number;
@@ -252,7 +250,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
         if(!p)
             return;
 
-        this.index.insert(p.bound);
         this.updateOpacity([p.bound]);
         this.props.updateHistory();
     }
@@ -268,7 +265,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
         if(bounds.length === 0)
             return;
 
-        this.index.load(bounds);
         this.updateOpacity(bounds);
         this.props.updateHistory();
     }
@@ -285,10 +281,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
             bounds.push(v.bound);
         });
 
-        // reset index
-        this.index = new rbush();
-        this.index.load(bounds);
-
         this.updateOpacity();
     }
 
@@ -298,7 +290,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
         // reset all points
         this.points = new Map();
 
-        this.index = new rbush();
         this.maxOverlap = 0;
 
         this.props.resetSearch();
@@ -340,7 +331,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
     constructor(props: MapComponentProps) {
         super(props);
 
-        this.index = new rbush();
         this.maxOverlap = 0;
         this.map = null;
         this.points = new Map();
@@ -433,7 +423,6 @@ export class MapComponent extends React.Component<MapComponentProps> {
         if(!p)
             return null;
 
-        this.index.remove(p.bound);
         p.marker.setMap(null);
         p.rectangle.setMap(null);
         this.points.delete(key);

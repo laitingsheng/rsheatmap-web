@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { Action, BiFunction, Function } from './DataStructure/Util';
+import { Action, BiFunction, Function } from '../Util';
 import MapComponent, { Coordinate, Params, Record } from './MapComponent';
-import '../css/Component.css';
-import '../css/Map.css';
+import '../../css/Component.css';
+import '../../css/Map.css';
 import LatLngBounds = google.maps.LatLngBounds;
 
 interface TitleProps {

@@ -8,6 +8,10 @@ export abstract class DataObject {
     get [Symbol.toStringTag](): string {
         return this.constructor.name;
     }
+
+    equals(o: DataObject): boolean {
+        return this === o;
+    }
 }
 
 export const rgb = (r: number, g: number, b: number): string =>

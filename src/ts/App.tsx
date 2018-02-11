@@ -1,8 +1,8 @@
 import * as React from 'react';
-import Header from './Header';
-import Main from './Main';
-import Footer from './Footer';
-import { Params } from './MapComponent';
+import Header from './Components/Header';
+import Main from './Components/Main';
+import Footer from './Components/Footer';
+import { Params } from './Components/MapComponent';
 import LatLngBounds = google.maps.LatLngBounds;
 
 export class App extends React.PureComponent<{}> {
