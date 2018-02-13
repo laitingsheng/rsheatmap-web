@@ -1,14 +1,8 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
-import {
-    Action,
-    binarySearch,
-    Comparable,
-    compareFunction,
-    DataObject,
-    Function,
-    rgb
-} from '../Util';
+import { Action, Comparable, DataObject, Function, rgb } from '../Util/Util';
+import { CirRegion, lineSweepCRESTCir, lineSweepCRESTRect, RectRegion } from '../Util/CREST';
+import Circle = google.maps.Circle;
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import LatLngBoundsLiteral = google.maps.LatLngBoundsLiteral;
@@ -17,7 +11,7 @@ import PlaceResult = google.maps.places.PlaceResult;
 import Rectangle = google.maps.Rectangle;
 import SymbolPath = google.maps.SymbolPath;
 
-const compute = google.maps.geometry.spherical.computeOffset;
+const computeOffset = google.maps.geometry.spherical.computeOffset;
 
 function stringifyCoordinate(x: number, y: number): string {
     return `${x} ${y}`;
@@ -57,122 +51,31 @@ export class Record extends DataObject implements Coordinate, Comparable<Record>
     }
 }
 
-export interface Bound {
-    readonly minX: number;
-    readonly minY: number;
-    readonly maxX: number;
-    readonly maxY: number;
-}
+export class Point extends Record {
+    readonly cirBound: CirRegion;
+    readonly rectBound: RectRegion;
 
-class Tick extends DataObject implements Comparable<Tick> {
-    readonly open: number;
-
-    [Symbol.toPrimitive](hint: string) {
-        if(hint === 'number')
-            return this.tick;
-
-        if(hint === 'string')
-            return this.toString();
-
-        return true;
-    }
-
-    compareTo(o: Tick): number {
-        if(this === o)
-            return 0;
-
-        let re = this.tick - o.tick;
-        if(re)
-            return re;
-        if(re = this.open - o.open)
-            return re;
-        return this.region.compareTo(o.region);
-    }
-
-    toString(): string {
-        return `${this.tick} ${this.region} ${this.open ? 'open' : 'close'}`;
-    }
-
-    constructor(readonly tick: number, readonly region: Region, open: boolean) {
-        super();
-        this.open = Number(open);
-    }
-}
-
-class Region extends DataObject implements Bound, Comparable<Region> {
-    readonly minXTick: Tick;
-    readonly maxXTick: Tick;
-    readonly minYTick: Tick;
-    readonly maxYTick: Tick;
-
-    get minX(): number {
-        return +this.minXTick;
-    }
-
-    get minY(): number {
-        return +this.maxXTick;
-    }
-
-    get maxX(): number {
-        return +this.minYTick;
-    }
-
-    get maxY(): number {
-        return +this.maxYTick;
-    }
-
-    static fromLatLngBound(bound: LatLngBounds): Region {
-        const sw = bound.getSouthWest(), ne = bound.getNorthEast();
-        return new Region(sw.lat(), sw.lng(), ne.lat(), ne.lng());
-    }
-
-    compareTo(o: Region): number {
-        if(this === o)
-            return 0;
-
-        let re = this.minX - o.minX;
-        if(re)
-            return re;
-        if(re = this.maxX - o.maxX)
-            return re;
-        if(re = this.minY - o.minY)
-            return re;
-        return this.maxY - o.maxY;
-    }
-
-    toKey(): string {
-        return `[${this.minX} ${this.minY} ${this.maxX} ${this.maxY}]`;
-    }
-
-    private constructor(minX: number, minY: number, maxX: number, maxY: number) {
-        super();
-
-        this.toString = this.toKey;
-
-        this.minXTick = new Tick(minX, this, true);
-        this.maxXTick = new Tick(maxX, this, false);
-        this.minYTick = new Tick(minY, this, true);
-        this.maxYTick = new Tick(maxY, this, false);
-    }
-}
-
-class Point extends Record {
-    bound: Region;
-
-    constructor(pos: LatLng, readonly marker: Marker, readonly rectangle: Rectangle,
-                place: PlaceResult) {
+    constructor(pos: google.maps.LatLng, place: google.maps.places.PlaceResult,
+                readonly marker: google.maps.Marker, readonly circle: google.maps.Circle,
+                readonly rectangle: google.maps.Rectangle) {
         super(pos, place);
-        this.bound = Region.fromLatLngBound(rectangle.getBounds());
+
+        this.cirBound = CirRegion.fromCircle(circle);
+        this.rectBound = RectRegion.fromRectangle(rectangle);
     }
 }
 
 export interface Query {
-    height: number;
-    width: number;
+    height?: number;
+    width?: number;
+    radius?: number;
 }
+
+export type Display = 'Circle' | 'Rectangle';
 
 export interface MapComponentProps {
     resetSearch: Action<void>;
+    updateCount: Function<number, void>;
     updateHistory: Action<void>;
     updateSearchBounds: Function<LatLngBounds, void>;
 }
@@ -181,62 +84,32 @@ export interface Params extends Coordinate {
     readonly place?: PlaceResult;
 }
 
-function lineSweepCREST(candidates: Array<Region>): number {
-    let maxOverlap = 1;
-
-    // store critical events in order
-    const ticks: Array<Tick> = [];
-    candidates.forEach(r => ticks.push(r.minXTick, r.maxXTick));
-    ticks.sort(compareFunction);
-
-    // line-sweep
-    let sweep: Array<Tick> = [], prevTick: Tick;
-    ticks.forEach(xTick => {
-        let overlap = 0;
-        if(prevTick)
-            sweep.forEach(yTick => {
-                if(yTick.open)
-                    ++overlap;
-                else
-                    --overlap;
-
-                if(overlap > maxOverlap)
-                    maxOverlap = overlap;
-            });
-
-        if(xTick.open) {
-            sweep.push(xTick.region.minYTick, xTick.region.maxYTick);
-            sweep.sort(compareFunction);
-        } else {
-            binarySearch(sweep, 0, sweep.length, xTick.region.minYTick, compareFunction,
-                         index => sweep.splice(index, 1));
-            binarySearch(sweep, 0, sweep.length, xTick.region.maxYTick, compareFunction,
-                         index => sweep.splice(index, 1));
-        }
-
-        prevTick = xTick;
-    });
-
-    return maxOverlap;
-}
-
 export class MapComponent extends React.Component<MapComponentProps> {
+    private display: Display;
     private mapContainer: HTMLDivElement;
     private map: google.maps.Map;
-    private maxOverlap: number;
+    private maxOverlapCir: number;
+    private maxOverlapRect: number;
     private points: Map<string, Point>;
     private query: Query;
+    private updateCir: boolean;
+    private updateRect: boolean;
 
     get size(): number {
         return this.points.size;
     }
 
-    get bounds(): LatLngBounds {
+    get mapBounds(): LatLngBounds {
         return this.map.getBounds();
     }
 
-    private get grayScale(): string {
-        const g = Math.floor(255 / this.maxOverlap);
+    private get grayScaleCir(): string {
+        const g = Math.floor(255 / this.maxOverlapCir);
+        return rgb(g, g, g);
+    }
+
+    private get grayScaleRect(): string {
+        const g = Math.floor(255 / this.maxOverlapRect);
         return rgb(g, g, g);
     }
 
@@ -250,38 +123,50 @@ export class MapComponent extends React.Component<MapComponentProps> {
         if(!p)
             return;
 
-        this.updateOpacity([p.bound]);
+        this.updateCir = this.updateRect = true;
+        this.updateFill([p]);
+        this.props.updateCount(this.size);
         this.props.updateHistory();
     }
 
     addPoints(poss: Array<Params>): void {
-        const bounds: Array<Region> = [];
+        const inserted: Array<Point> = [];
         poss.forEach(({ x, y, place }) => {
             let p = this.createPoint(x, y, place);
             if(p)
-                bounds.push(p.bound);
+                inserted.push(p);
         });
 
-        if(bounds.length === 0)
+        if(inserted.length === 0)
             return;
 
-        this.updateOpacity(bounds);
+        this.updateCir = this.updateRect = true;
+        this.updateFill(inserted);
+        this.props.updateCount(this.size);
         this.props.updateHistory();
     }
 
-    changeQuery(queryHeight: number, queryWidth: number): void {
-        this.query.height = queryHeight;
-        this.query.width = queryWidth;
+    changeQuery(query: Query): void {
+        // update circle bound if necessary
+        if(query.radius && query.radius > 0) {
+            this.query.radius = query.radius * 1000;
+            this.points.forEach(v => v.circle.setRadius(this.query.radius));
+            this.updateCir = true;
+        }
 
-        // change boundaries
-        const bounds: Array<Bound> = [];
-        this.points.forEach(v => {
-            v.rectangle.setBounds(this.calcBound(v.pos));
-            v.bound = Region.fromLatLngBound(v.rectangle.getBounds());
-            bounds.push(v.bound);
-        });
+        // update rectangle if necessary
+        if(query.height && query.height > 0) {
+            this.query.height = query.height * 1000;
+            this.updateRect = true;
+        }
+        if(query.width && query.height > 0) {
+            this.query.width = query.width * 1000;
+            this.updateRect = true;
+        }
+        if(this.updateRect)
+            this.points.forEach(v => v.rectangle.setBounds(this.calcBound(v.pos)));
 
-        this.updateOpacity();
+        this.updateFill();
     }
 
     clear(): void {
@@ -290,9 +175,10 @@ export class MapComponent extends React.Component<MapComponentProps> {
         // reset all points
         this.points = new Map();
 
-        this.maxOverlap = 0;
+        this.maxOverlapCir = this.maxOverlapRect = 0;
 
         this.props.resetSearch();
+        this.props.updateCount(0);
     }
 
     generateRecords(): Array<Record> {
@@ -301,8 +187,10 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
     removePoint(x: number, y: number): void {
         if(this.deletePoint(x, y)) {
-            this.updateOpacity();
+            this.updateCir = this.updateRect = true;
+            this.updateFill();
             this.props.updateHistory();
+            this.props.updateCount(this.size);
         }
     }
 
@@ -314,35 +202,54 @@ export class MapComponent extends React.Component<MapComponentProps> {
         });
 
         if(c) {
-            this.updateOpacity();
+            this.updateCir = this.updateRect = true;
+            this.updateFill();
             this.props.updateHistory();
+            this.props.updateCount(this.size);
         }
-    }
-
-    // there is no need to update the component
-    shouldComponentUpdate() {
-        return false;
     }
 
     render() {
         return <div className="map-canvas" ref={ref => this.mapContainer = ref}/>;
     }
 
+    // there is no need to update the component, manipulation controlled by Google Maps JavaScript
+    shouldComponentUpdate() {
+        return false;
+    }
+
+    setDisplay(display: Display): void {
+        this.display = display;
+
+        if(display === 'Rectangle')
+            this.points.forEach(v => {
+                v.circle.setMap(null);
+                v.rectangle.setMap(this.map);
+            });
+        else
+            this.points.forEach(v => {
+                v.circle.setMap(this.map);
+                v.rectangle.setMap(null);
+            });
+    }
+
     constructor(props: MapComponentProps) {
         super(props);
 
-        this.maxOverlap = 0;
+        this.display = 'Rectangle';
+        this.maxOverlapCir = this.maxOverlapRect = 0;
         this.map = null;
         this.points = new Map();
-        this.query = { height: 10, width: 10 };
+        this.query = { height: 10000, width: 10000, radius: 10000 };
+        this.updateCir = this.updateRect = false;
     }
 
     private calcBound(c: LatLng): LatLngBoundsLiteral {
         return {
-            north: compute(c, this.query.height * 1000, 0).lat(),
-            south: compute(c, this.query.height * 1000, 180).lat(),
-            east: compute(c, this.query.width * 1000, 90).lng(),
-            west: compute(c, this.query.width * 1000, 270).lng()
+            north: computeOffset(c, this.query.height, 0).lat(),
+            south: computeOffset(c, this.query.height, 180).lat(),
+            east: computeOffset(c, this.query.width, 90).lng(),
+            west: computeOffset(c, this.query.width, 270).lng()
         };
     }
 
@@ -373,7 +280,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
                 streetViewControl: false
             });
         }
-        this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.bounds));
+        this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.mapBounds));
         this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
     }
 
@@ -386,7 +293,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         // rectangle on the map
         let c = new LatLng(x, y);
         p = new Point(
-            c, new Marker(
+            c, place, new Marker(
                 {
                     map: this.map, position: c,
                     icon: {
@@ -397,21 +304,35 @@ export class MapComponent extends React.Component<MapComponentProps> {
                     }
                 }
             ),
-            new Rectangle(
+            new Circle(
                 {
-                    map: this.map,
-                    bounds: this.calcBound(c),
+                    map: null,
+                    center: c,
+                    radius: this.query.radius,
                     fillOpacity: 0.4,
-                    fillColor: this.grayScale,
+                    fillColor: 'Black',
                     strokeOpacity: 0,
                     clickable: false
                 }
             ),
-            place
+            new Rectangle(
+                {
+                    map: null,
+                    bounds: this.calcBound(c),
+                    fillOpacity: 0.4,
+                    fillColor: 'Black',
+                    strokeOpacity: 0,
+                    clickable: false
+                }
+            )
         );
 
-        p.marker.addListener('rightclick', e => this.removePoint(e.latLng.lat(), e.latLng.lng()));
+        if(this.display === 'Rectangle')
+            p.rectangle.setMap(this.map);
+        else
+            p.circle.setMap(this.map);
 
+        p.marker.addListener('rightclick', e => this.removePoint(e.latLng.lat(), e.latLng.lng()));
         this.points.set(p.toKey(), p);
 
         return p;
@@ -425,34 +346,94 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
         p.marker.setMap(null);
         p.rectangle.setMap(null);
+        p.circle.setMap(null);
         this.points.delete(key);
 
         return p;
     }
 
-    private updateOpacity(inserted?: Array<Region>): void {
-        // determined affected regions
-        if(inserted) {
-            const cs = new Set<Region>();
-            inserted.forEach(r => {
-                cs.add(r);
-                const ins = this.index.search(r);
-                ins.forEach(cs.add.bind(cs));
-            });
-            inserted = Array.from(cs.values());
+    private updateFill(inserted?: Array<Point>): void {
+        let circles, rectangles;
+
+        // search over affected area
+        if(!inserted) {
+            if(this.updateCir) {
+                circles = new Set<CirRegion>();
+                this.points.forEach(v => circles.add(v.cirBound));
+            }
+            if(this.updateRect) {
+                rectangles = new Set<RectRegion>();
+                this.points.forEach(v => rectangles.add(v.rectBound));
+            }
         } else {
-            inserted = [];
-            this.points.forEach(v => inserted.push(v.bound));
+            if(this.updateCir) {
+                circles = new Map<string, CirRegion>();
+                inserted.forEach(p => this.points.forEach(v => {
+                    let l = circles.get(p.toKey()), r = circles.get(v.toKey());
+                    if(!l) {
+                        l = p.cirBound;
+                        circles.set(p.toKey(), l);
+                    }
+
+                    if(r)
+                        return;
+
+                    r = v.cirBound;
+                    if(l.intersect(r))
+                        circles.set(v.toKey(), r);
+                }));
+            }
+            if(this.updateRect) {
+                rectangles = new Map<string, RectRegion>();
+                inserted.forEach(p => this.points.forEach(v => {
+                    let l = rectangles.get(p.toKey()), r = rectangles.get(v.toKey());
+                    if(!l) {
+                        l = p.rectBound;
+                        rectangles.set(p.toKey(), l);
+                    }
+
+                    if(r)
+                        return;
+
+                    r = v.rectBound;
+                    if(l.intersect(r))
+                        rectangles.set(v.toKey(), r);
+                }));
+            }
         }
 
-        // line sweep affected regions
-        const maxOverlap = lineSweepCREST(inserted);
-        if(maxOverlap <= this.maxOverlap)
-            return;
-        this.maxOverlap = maxOverlap;
+        let maxOverlap: number, updated: boolean = false;
 
-        // update opacity of each rectangles
-        this.points.forEach(v => v.rectangle.setOptions({ fillColor: this.grayScale }));
+        // determine if circles need update
+        if(this.updateCir) {
+            maxOverlap = lineSweepCRESTCir(Array.from(circles.values()));
+            if(maxOverlap > this.maxOverlapCir) {
+                this.maxOverlapCir = maxOverlap;
+                updated = true;
+            } else
+                this.updateCir = false;
+        }
+
+        // determine if rectangles need update
+        if(this.updateRect) {
+            maxOverlap = lineSweepCRESTRect(Array.from(rectangles.values()));
+            if(maxOverlap > this.maxOverlapRect) {
+                this.maxOverlapRect = maxOverlap;
+                updated = true;
+            } else
+                this.updateRect = false;
+        }
+
+        // update fill of each points if any changes applied
+        if(updated)
+            this.points.forEach(v => {
+                if(this.updateRect)
+                    v.rectangle.setOptions({ fillColor: this.grayScaleRect });
+                if(this.updateCir)
+                    v.circle.setOptions({ fillColor: this.grayScaleCir });
+            });
+
+        this.updateCir = this.updateRect = false;
     }
 }
 

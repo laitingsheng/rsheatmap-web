@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Action, BiFunction, Function } from '../Util';
-import MapComponent, { Coordinate, Params, Record } from './MapComponent';
+import { Action, BiFunction, Function } from '../Util/Util';
+import MapComponent, { Coordinate, Display, Params, Record } from './MapComponent';
 import '../../css/Component.css';
 import '../../css/Map.css';
 import LatLngBounds = google.maps.LatLngBounds;
@@ -16,33 +16,51 @@ class Title extends React.PureComponent<TitleProps> {
 }
 
 class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>> {
+    private input: HTMLInputElement;
+
+    get value(): string {
+        return this.input.value;
+    }
+
+    set value(text: string) {
+        this.input.value = text;
+    }
+
     render() {
         return (
             <div className="form-group">
                 <label htmlFor={this.props.id}>{this.props.name}</label>
-                <input type="number" min={this.props.min} max={this.props.max} step="0.000001"
-                       className="form-control" required id={this.props.id}
+                <input type="number" min={this.props.min} max={this.props.max}
+                       step={this.props.step} className="form-control" required id={this.props.id}
                        placeholder={this.props.placeholder} value={this.props.value}
-                       onChange={this.props.onChange}/>
+                       onChange={this.props.onChange} ref={ref => this.input = ref}
+                       disabled={this.props.disabled}/>
             </div>
         );
     }
 }
 
 interface InputFormProps {
-    changeRegion: BiFunction<number, number, void>;
     addPoint: BiFunction<number, number, void>;
     clear: Action<void>;
+    setDisplay: Function<Display, void>;
+    updateCircle: Function<number, void>;
+    updateRectangle: BiFunction<number, number, void>;
 }
 
 interface InputFormState {
     height: number;
     width: number;
+    radius: number;
     lat: number | undefined;
     lng: number | undefined;
+    queryType: Display;
 }
 
 class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
+    private inputLng: InputNumberBox;
+    private inputLat: InputNumberBox;
+
     render() {
         return (
             <>
@@ -51,10 +69,12 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
                     <Title text="Point"/>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
                                     onChange={e => this.setState({ lng: e.target.value })}
-                                    min="-180" max="180"/>
+                                    min="-180" max="180" step="0.000001"
+                                    ref={ref => this.inputLng = ref}/>
                     <InputNumberBox name="Latitude" id="lat" placeholder="Enter latitude"
                                     onChange={e => this.setState({ lat: e.target.value })}
-                                    min="-90" max="90"/>
+                                    min="-90" max="90" step="0.000001"
+                                    ref={ref => this.inputLat = ref}/>
                     <button type="submit" className="btn btn-primary">
                         Add
                     </button>
@@ -62,16 +82,36 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
                         Clear
                     </button>
                 </form>
-                <form className="wrap-full-box wrap-inner-box" onSubmit={this.change}>
-                    <Title text="Query Region"/>
-                    <InputNumberBox name="Height (km)" id="height" min="0"
-                                    placeholder={this.state.height.toString()}
-                                    onChange={e => this.setState({ height: e.target.value })}/>
-                    <InputNumberBox name="Width (km)" id="width" min="0"
-                                    placeholder={this.state.width.toString()}
-                                    onChange={e => this.setState({ width: e.target.value })}/>
+                <form className="wrap-full-box wrap-inner-box" onSubmit={this.change}
+                      onReset={this.switch}>
+                    <Title text={`Query Region (${this.state.queryType})`}/>
+                    {
+                        this.state.queryType === 'Rectangle' ?
+                            <>
+                                <InputNumberBox name="Height (km)" id="height" min="0" step="0.1"
+                                                value={this.state.height}
+                                                onChange={e => this.setState(
+                                                    { height: e.target.value })}/>
+                                <InputNumberBox name="Width (km)" id="width" min="0" step="0.1"
+                                                value={this.state.width}
+                                                onChange={e => this.setState(
+                                                    { width: e.target.value })}/>
+                            </>
+                            :
+                            <>
+                                <InputNumberBox name="Radius (km)" id="radius" min="0" step="0.1"
+                                                value={this.state.radius}
+                                                onChange={e => this.setState(
+                                                    { radius: e.target.value })}/>
+                                <InputNumberBox name="(Not in use)" value="" id="disabled"
+                                                disabled/>
+                            </>
+                    }
                     <button type="submit" className="btn btn-primary">
                         Update
+                    </button>
+                    <button type="reset" className="btn btn-secondary btn-reset">
+                        Switch
                     </button>
                 </form>
             </>
@@ -84,27 +124,44 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
         this.state = {
             height: 10,
             width: 10,
+            radius: 10,
             lat: undefined,
-            lng: undefined
+            lng: undefined,
+            queryType: 'Rectangle'
         };
 
         this.addPoint = this.addPoint.bind(this);
-        this.resetPoints = this.resetPoints.bind(this);
         this.change = this.change.bind(this);
+        this.resetPoints = this.resetPoints.bind(this);
+        this.switch = this.switch.bind(this);
     }
 
     private addPoint(event: React.FormEvent<any>) {
         event.preventDefault();
         this.props.addPoint(Number(this.state.lat), Number(this.state.lng));
+        this.inputLng.value = this.inputLat.value = '';
+    }
+
+    private change(event: React.FormEvent<any>) {
+        event.preventDefault();
+        if(this.state.queryType === 'Rectangle')
+            this.props.updateRectangle(Number(this.state.height), Number(this.state.width));
+        else
+            this.props.updateCircle(Number(this.state.radius));
     }
 
     private resetPoints() {
         this.props.clear();
     }
 
-    private change(event: React.FormEvent<any>) {
-        event.preventDefault();
-        this.props.changeRegion(Number(this.state.height), Number(this.state.width));
+    private switch(): void {
+        if(this.state.queryType === 'Rectangle') {
+            this.setState({ queryType: 'Circle' });
+            this.props.setDisplay('Circle');
+        } else {
+            this.setState({ queryType: 'Rectangle' });
+            this.props.setDisplay('Rectangle');
+        }
     }
 }
 
@@ -131,12 +188,7 @@ class Row {
 }
 
 class History extends React.Component<HistoryProps> {
-    private selection: Map<string, Row>;
-
-    // update controlled manually
-    shouldComponentUpdate() {
-        return false;
-    }
+    private rows: Map<string, Row>;
 
     render() {
         return (
@@ -152,11 +204,11 @@ class History extends React.Component<HistoryProps> {
                     <tbody>
                     {
                         this.props.generate().map(r => {
-                            let row = this.selection.get(r.toKey());
+                            let row = this.rows.get(r.toKey());
                             if(!row) {
                                 row = new Row(r);
                                 row.cellRefs = new Array(3);
-                                this.selection.set(r.toKey(), row);
+                                this.rows.set(r.toKey(), row);
                             }
                             return (
                                 <tr onClick={row.onClick} key={r.toKey()}>
@@ -183,10 +235,15 @@ class History extends React.Component<HistoryProps> {
         );
     }
 
+    // update controlled manually
+    shouldComponentUpdate() {
+        return false;
+    }
+
     constructor(props: HistoryProps) {
         super(props);
 
-        this.selection = new Map();
+        this.rows = new Map();
 
         this.removePoints = this.removePoints.bind(this);
     }
@@ -195,10 +252,10 @@ class History extends React.Component<HistoryProps> {
         event.preventDefault();
 
         const candidates = [];
-        this.selection.forEach(v => v.selected && candidates.push(v.candidate));
+        this.rows.forEach(v => v.selected && candidates.push(v.candidate));
         this.props.remove(candidates);
 
-        this.selection = new Map();
+        this.rows = new Map();
     }
 }
 
@@ -216,35 +273,8 @@ export class Main extends React.Component<MainProps, MainState> {
     private history: History;
     private map: MapComponent;
 
-    // update controlled manually
-    shouldComponentUpdate() {
-        return false;
-    }
-
-    render() {
-        return (
-            <div role="main" className="container">
-                <div className="wrap-box">
-                    {
-                        this.state.history ?
-                            <History generate={this.generate} remove={this.removePoints}
-                                     ref={ref => this.history = ref}/>
-                            :
-                            <InputForm addPoint={this.addPoint} changeRegion={this.changeRegion}
-                                       clear={this.clear}/>
-                    }
-                </div>
-                <MapComponent resetSearch={this.props.resetSearch}
-                              updateHistory={this.updateHistory}
-                              updateSearchBounds={this.props.updateSearchBounds}
-                              ref={ref => this.map = ref}/>
-            </div>
-        );
-    }
-
     addPoints(points: Array<Params>): void {
         this.map.addPoints(points);
-        this.props.updateCount(this.map.size);
     }
 
     // toggle to <History>
@@ -259,31 +289,64 @@ export class Main extends React.Component<MainProps, MainState> {
         this.forceUpdate();
     }
 
+    render() {
+        return (
+            <div role="main" className="container">
+                <div className="wrap-box">
+                    {
+                        this.state.history ?
+                            <History generate={this.generate} remove={this.removePoints}
+                                     ref={ref => this.history = ref}/>
+                            :
+                            <InputForm addPoint={this.addPoint} clear={this.clear}
+                                       setDisplay={this.setDisplay}
+                                       updateRectangle={this.updateRectangle}
+                                       updateCircle={this.updateCircle}/>
+                    }
+                </div>
+                <MapComponent resetSearch={this.props.resetSearch}
+                              updateCount={this.props.updateCount}
+                              updateHistory={this.updateHistory}
+                              updateSearchBounds={this.props.updateSearchBounds}
+                              ref={ref => this.map = ref}/>
+            </div>
+        );
+    }
+
+    // update controlled manually
+    shouldComponentUpdate() {
+        return false;
+    }
+
     constructor(props: MainProps) {
         super(props);
 
         this.state = { history: false };
 
         this.addPoint = this.addPoint.bind(this);
-        this.changeRegion = this.changeRegion.bind(this);
         this.clear = this.clear.bind(this);
         this.generate = this.generate.bind(this);
         this.removePoints = this.removePoints.bind(this);
+        this.setDisplay = this.setDisplay.bind(this);
+        this.updateCircle = this.updateCircle.bind(this);
         this.updateHistory = this.updateHistory.bind(this);
+        this.updateRectangle = this.updateRectangle.bind(this);
     }
 
     private addPoint(x: number, y: number): void {
         this.map.addPoint(x, y);
-        this.props.updateCount(this.map.size);
     }
 
     private clear(): void {
         this.map.clear();
-        this.props.updateCount(0);
     }
 
-    private changeRegion(height: number, width: number): void {
-        this.map.changeQuery(height, width);
+    private updateCircle(radius: number): void {
+        this.map.changeQuery({ radius });
+    }
+
+    private updateRectangle(height: number, width: number): void {
+        this.map.changeQuery({ height, width });
     }
 
     private generate(): Array<Record> {
@@ -292,6 +355,10 @@ export class Main extends React.Component<MainProps, MainState> {
 
     private removePoints(points: Array<Coordinate>) {
         this.map.removePoints(points);
+    }
+
+    private setDisplay(display: Display): void {
+        this.map.setDisplay(display);
     }
 
     // handler to <MapComponent> when add/remove a point

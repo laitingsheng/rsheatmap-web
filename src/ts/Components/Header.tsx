@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Action, Function } from '../Util';
+import { Action, Function } from '../Util/Util';
 import { Params } from './MapComponent';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../css/App.css';
@@ -29,15 +29,6 @@ class Header extends React.Component<HeaderProps> {
             this.placeSearch.placeholder = this.placeSearch.value;
             this.placeSearch.value = '';
         });
-    }
-
-    // attach to bound_changed event and obtain the current bound of the map
-    setSearchBounds(bounds: LatLngBounds): void {
-        this.searchBox.setBounds(bounds);
-    }
-
-    shouldComponentUpdate() {
-        return false;
     }
 
     render() {
@@ -71,6 +62,15 @@ class Header extends React.Component<HeaderProps> {
 
     resetSearch(): void {
         this.placeSearch.placeholder = 'Search Place';
+    }
+
+    // attach to bound_changed event and obtain the current bound of the map
+    setSearchBounds(bounds: LatLngBounds): void {
+        this.searchBox.setBounds(bounds);
+    }
+
+    shouldComponentUpdate() {
+        return false;
     }
 
     constructor(props: HeaderProps) {
