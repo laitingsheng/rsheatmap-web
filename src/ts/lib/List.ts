@@ -18,13 +18,13 @@ export abstract class Linked<T> extends DataObject {
         return this.last ? this.last.data : null;
     }
 
-    pushBack(item: T): void {
+    pushBack(item: T): number {
         if(this.last) {
             this.last.next = new LNode<T>(item, this.last, null);
             this.last = this.last.next;
         } else
             this.first = this.last = new LNode<T>(item, null, null);
-        ++this._size;
+        return ++this._size;
     }
 
     constructor() {
@@ -119,14 +119,10 @@ export function linkedMergeSort<T>(start: LNode<T>, end: LNode<T>,
 }
 
 // doubly linked list
-export class List<T> extends Linked<T> implements Stack<T>, Queue<T>, Iterable<T> {
+export class List<T> extends Linked<T> implements Stack<T>, Queue<T> {
     front: () => T;
     popBack: () => T;
     popFront: () => T;
-
-    [Symbol.iterator](): Iterator<T> {
-        return null;
-    }
 
     forEach(callback: (value: T, index: number) => void): void {
         let curr = this.first, i = 0;
@@ -134,6 +130,17 @@ export class List<T> extends Linked<T> implements Stack<T>, Queue<T>, Iterable<T
             callback(curr.data, i++);
             curr = curr.next;
         }
+    }
+
+    get(index: number): T | never {
+        let curr = this.first, i = 0;
+        while(curr) {
+            if(i++ === index)
+                return curr.data;
+            curr = curr.next;
+        }
+
+        throw 'index out of range';
     }
 
     map(callback: (value: T, index: number) => any): Array<any> {
@@ -145,13 +152,27 @@ export class List<T> extends Linked<T> implements Stack<T>, Queue<T>, Iterable<T
         return re;
     }
 
-    pushFront(item: T): void {
+    pushFront(item: T): number {
         if(this.first) {
             this.first.prev = new LNode<T>(item, null, this.first);
             this.first = this.first.prev;
         } else
             this.first = this.last = new LNode<T>(item, null, null);
         ++this._size;
+        return 0;
+    }
+
+    set(index: number, item: T): void | never {
+        let curr = this.first, i = 0;
+        while(curr) {
+            if(i++ === index) {
+                curr.data = item;
+                return;
+            }
+            curr = curr.next;
+        }
+
+        throw 'index out of range';
     }
 
     // in-place merge sort, approx. O(2 * n log n + n) = O(n log n)
@@ -184,11 +205,14 @@ export class List<T> extends Linked<T> implements Stack<T>, Queue<T>, Iterable<T
 Mixin(List, Stack, Queue);
 
 export class SortedList<T> extends List<T> {
-    pushBack(item: T): void {
+    pushBack(item: T): number {
+        let i = this.size;
         if(this.last) {
             let curr = this.last;
-            while(curr && this.cmp(item, curr.data) <= 0)
+            while(curr && this.cmp(item, curr.data) <= 0) {
                 curr = curr.prev;
+                --i;
+            }
             if(curr) {
                 const next = curr.next;
                 curr.next = new LNode(item, curr, next);
@@ -203,13 +227,17 @@ export class SortedList<T> extends List<T> {
         } else
             this.first = this.last = new LNode<T>(item, null, null);
         ++this._size;
+        return i;
     }
 
-    pushFront(item: T): void {
+    pushFront(item: T): number {
+        let i = 0;
         if(this.first) {
             let curr = this.first;
-            while(curr && this.cmp(item, curr.data) >= 0)
+            while(curr && this.cmp(item, curr.data) >= 0) {
                 curr = curr.next;
+                ++i;
+            }
             if(curr) {
                 const prev = curr.prev;
                 curr.prev = new LNode(item, prev, curr);
@@ -224,6 +252,11 @@ export class SortedList<T> extends List<T> {
         } else
             this.first = this.last = new LNode<T>(item, null, null);
         ++this._size;
+        return i;
+    }
+
+    set(): never {
+        throw 'operation not supported';
     }
 
     // call to this function will incur the change of comparison function used currently
