@@ -18,13 +18,12 @@ export abstract class Linked<T> extends DataObject {
         return this.last ? this.last.data : null;
     }
 
-    pushBack(item: T): number {
+    pushBack(item: T): void {
         if(this.last) {
             this.last.next = new LNode<T>(item, this.last, null);
             this.last = this.last.next;
         } else
             this.first = this.last = new LNode<T>(item, null, null);
-        return ++this._size;
     }
 
     constructor() {
@@ -152,14 +151,24 @@ export class List<T> extends Linked<T> implements Stack<T>, Queue<T> {
         return re;
     }
 
-    pushFront(item: T): number {
+    pushFront(item: T): void {
         if(this.first) {
             this.first.prev = new LNode<T>(item, null, this.first);
             this.first = this.first.prev;
         } else
             this.first = this.last = new LNode<T>(item, null, null);
         ++this._size;
-        return 0;
+    }
+
+    search(item: T): boolean {
+        let curr = this.first;
+        while(curr) {
+            if(this.equal(item, curr.data))
+                return true;
+            curr = curr.next;
+        }
+
+        return false;
     }
 
     set(index: number, item: T): void | never {
@@ -200,19 +209,20 @@ export class List<T> extends Linked<T> implements Stack<T>, Queue<T> {
         re += ']';
         return re;
     }
+
+    constructor(private equal: (l: T, r: T) => boolean = (l, r) => l === r) {
+        super();
+    }
 }
 
 Mixin(List, Stack, Queue);
 
 export class SortedList<T> extends List<T> {
-    pushBack(item: T): number {
-        let i = this.size;
+    pushBack(item: T): void {
         if(this.last) {
             let curr = this.last;
-            while(curr && this.cmp(item, curr.data) <= 0) {
+            while(curr && this.cmp(item, curr.data) <= 0)
                 curr = curr.prev;
-                --i;
-            }
             if(curr) {
                 const next = curr.next;
                 curr.next = new LNode(item, curr, next);
@@ -227,17 +237,13 @@ export class SortedList<T> extends List<T> {
         } else
             this.first = this.last = new LNode<T>(item, null, null);
         ++this._size;
-        return i;
     }
 
-    pushFront(item: T): number {
-        let i = 0;
+    pushFront(item: T): void {
         if(this.first) {
             let curr = this.first;
-            while(curr && this.cmp(item, curr.data) >= 0) {
+            while(curr && this.cmp(item, curr.data) >= 0)
                 curr = curr.next;
-                ++i;
-            }
             if(curr) {
                 const prev = curr.prev;
                 curr.prev = new LNode(item, prev, curr);
@@ -252,7 +258,6 @@ export class SortedList<T> extends List<T> {
         } else
             this.first = this.last = new LNode<T>(item, null, null);
         ++this._size;
-        return i;
     }
 
     set(): never {
@@ -266,7 +271,7 @@ export class SortedList<T> extends List<T> {
     }
 
     constructor(private cmp: (l: T, r: T) => number) {
-        super();
+        super((l, r) => cmp(l, r) === 0);
     }
 }
 
