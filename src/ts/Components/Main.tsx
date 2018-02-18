@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Action, BiFunction, Function } from '../Util/Util';
 import MapComponent, { Coordinate, Display, Params, Record } from './MapComponent';
 import '../../css/Component.css';
 import '../../css/Map.css';
@@ -41,19 +40,19 @@ class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>>
 }
 
 interface InputFormProps {
-    addPoint: BiFunction<number, number, void>;
-    clear: Action<void>;
-    setDisplay: Function<Display, void>;
-    updateCircle: Function<number, void>;
-    updateRectangle: BiFunction<number, number, void>;
+    addPoint: (x: number, y: number) => void;
+    clear: () => void;
+    setDisplay: (display: Display) => void;
+    updateCircle: (radius: number) => void;
+    updateRectangle: (x: number, y: number) => void;
 }
 
 interface InputFormState {
     height: number;
     width: number;
     radius: number;
-    lat: number | undefined;
-    lng: number | undefined;
+    lat: number;
+    lng: number;
     queryType: Display;
 }
 
@@ -138,7 +137,7 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
 
     private addPoint(event: React.FormEvent<any>) {
         event.preventDefault();
-        this.props.addPoint(Number(this.state.lat), Number(this.state.lng));
+        this.props.addPoint(Number(this.state.lng), Number(this.state.lat));
         this.inputLng.value = this.inputLat.value = '';
     }
 
@@ -166,8 +165,8 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
 }
 
 interface HistoryProps {
-    generate: Action<Array<Record>>;
-    remove: Function<Array<Coordinate>, void>;
+    generate: () => Array<Record>;
+    remove: (pos: Array<Coordinate>) => void;
 }
 
 class Row {
@@ -251,7 +250,7 @@ class History extends React.Component<HistoryProps> {
     private removePoints(event: React.FormEvent<any>) {
         event.preventDefault();
 
-        const candidates = [];
+        const candidates: Array<Record> = [];
         this.rows.forEach(v => v.selected && candidates.push(v.candidate));
         this.props.remove(candidates);
 
@@ -260,9 +259,9 @@ class History extends React.Component<HistoryProps> {
 }
 
 export interface MainProps {
-    resetSearch: Action<void>;
-    updateCount: Function<number, void>;
-    updateSearchBounds: Function<LatLngBounds, void>;
+    resetSearch: () => void;
+    updateCount: (count: number) => void;
+    updateSearchBounds: (bound: LatLngBounds) => void;
 }
 
 export interface MainState {

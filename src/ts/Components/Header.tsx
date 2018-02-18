@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Action, Function } from '../Util/Util';
 import { Params } from './MapComponent';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../css/App.css';
@@ -7,9 +6,9 @@ import LatLngBounds = google.maps.LatLngBounds;
 import SearchBox = google.maps.places.SearchBox;
 
 export interface HeaderProps {
-    addPoints: Function<Array<Params>, void>;
-    history: Action<void>;
-    input: Action<void>;
+    addPoints: (points: Array<Params>) => void;
+    history: () => void;
+    input: () => void;
 }
 
 class Header extends React.Component<HeaderProps> {
@@ -24,7 +23,7 @@ class Header extends React.Component<HeaderProps> {
         this.searchBox.addListener('places_changed', () => {
             this.props.addPoints(this.searchBox.getPlaces().map(p => {
                 let l = p.geometry.location;
-                return { x: l.lat(), y: l.lng(), place: p };
+                return { x: l.lng(), y: l.lat(), place: p };
             }));
             this.placeSearch.placeholder = this.placeSearch.value;
             this.placeSearch.value = '';

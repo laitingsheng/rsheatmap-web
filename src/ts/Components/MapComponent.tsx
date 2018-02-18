@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
-import { Action, Comparable, DataObject, Function, rgb } from '../Util/Util';
-import { CirRegion, lineSweepCRESTCir, lineSweepCRESTRect, RectRegion } from '../Util/CREST';
+import { ComparableDataObject, rgb } from '../lib/Util';
+import { CirRegion, lineSweepCRESTCir, lineSweepCRESTRect, RectRegion } from '../lib/CREST';
 import Circle = google.maps.Circle;
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
@@ -22,13 +22,13 @@ export interface Coordinate {
     readonly y: number;
 }
 
-export class Record extends DataObject implements Coordinate, Comparable<Record> {
+export class Record extends ComparableDataObject<Record> implements Coordinate {
     get x(): number {
-        return this.pos.lat();
+        return this.pos.lng();
     }
 
     get y(): number {
-        return this.pos.lng();
+        return this.pos.lat();
     }
 
     compareTo(o: Record): number {
@@ -42,7 +42,7 @@ export class Record extends DataObject implements Coordinate, Comparable<Record>
     }
 
     toKey(): string {
-        return stringifyCoordinate(this.pos.lat(), this.pos.lng());
+        return stringifyCoordinate(this.pos.lng(), this.pos.lat());
     }
 
     constructor(readonly pos: LatLng, readonly place: PlaceResult) {
@@ -74,10 +74,10 @@ export interface Query {
 export type Display = 'Circle' | 'Rectangle';
 
 export interface MapComponentProps {
-    resetSearch: Action<void>;
-    updateCount: Function<number, void>;
-    updateHistory: Action<void>;
-    updateSearchBounds: Function<LatLngBounds, void>;
+    resetSearch: () => void;
+    updateCount: (count: number) => void;
+    updateHistory: () => void;
+    updateSearchBounds: (bound: LatLngBounds) => void;
 }
 
 export interface Params extends Coordinate {
@@ -104,12 +104,12 @@ export class MapComponent extends React.Component<MapComponentProps> {
     }
 
     private get grayScaleCir(): string {
-        const g = Math.floor(255 / this.maxOverlapCir);
+        const g = this.maxOverlapCir > 1 ? Math.floor(255 / this.maxOverlapCir) : 127;
         return rgb(g, g, g);
     }
 
     private get grayScaleRect(): string {
-        const g = Math.floor(255 / this.maxOverlapRect);
+        const g = this.maxOverlapRect > 1 ? Math.floor(255 / this.maxOverlapRect) : 127;
         return rgb(g, g, g);
     }
 
@@ -175,7 +175,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         // reset all points
         this.points = new Map();
 
-        this.maxOverlapCir = this.maxOverlapRect = 0;
+        this.maxOverlapCir = this.maxOverlapRect = 1;
 
         this.props.resetSearch();
         this.props.updateCount(0);
@@ -237,7 +237,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         super(props);
 
         this.display = 'Rectangle';
-        this.maxOverlapCir = this.maxOverlapRect = 0;
+        this.maxOverlapCir = this.maxOverlapRect = 1;
         this.map = null;
         this.points = new Map();
         this.query = { height: 10000, width: 10000, radius: 10000 };
@@ -281,7 +281,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
             });
         }
         this.map.addListener('bounds_changed', () => this.props.updateSearchBounds(this.mapBounds));
-        this.map.addListener('click', e => this.addPoint(e.latLng.lat(), e.latLng.lng()));
+        this.map.addListener('click', e => this.addPoint(e.latLng.lng(), e.latLng.lat()));
     }
 
     private createPoint(x: number, y: number, place: PlaceResult): Point {
@@ -291,7 +291,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
 
         // if the point does not exist, create a new point and place the marker and the
         // rectangle on the map
-        let c = new LatLng(x, y);
+        let c = new LatLng(y, x);
         p = new Point(
             c, place, new Marker(
                 {
@@ -309,8 +309,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
                     map: null,
                     center: c,
                     radius: this.query.radius,
-                    fillOpacity: 0.4,
-                    fillColor: 'Black',
+                    fillOpacity: 0.3,
+                    fillColor: this.grayScaleCir,
                     strokeOpacity: 0,
                     clickable: false
                 }
@@ -319,8 +319,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
                 {
                     map: null,
                     bounds: this.calcBound(c),
-                    fillOpacity: 0.4,
-                    fillColor: 'Black',
+                    fillOpacity: 0.3,
+                    fillColor: this.grayScaleRect,
                     strokeOpacity: 0,
                     clickable: false
                 }
@@ -353,7 +353,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
     }
 
     private updateFill(inserted?: Array<Point>): void {
-        let circles, rectangles;
+        let circles: any, rectangles: any;
 
         // search over affected area
         if(!inserted) {
