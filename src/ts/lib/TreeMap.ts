@@ -38,7 +38,7 @@ class BTNode<K, V> extends DataObject {
             ++i;
 
         // identical key then return value
-        if(re === 0)
+        if(!re)
             return this.entries[i].value;
 
         // if current is leaf then it does not exist
@@ -59,6 +59,128 @@ class BTNode<K, V> extends DataObject {
             e.value = value;
             return tmp;
         });
+    }
+
+    remove(key: K): V {
+        // see if the key is in current node
+        let ind = 0, re: number;
+        while(ind < this.size && (re = this.cmpKey(this.entries[ind].key, key)) < 0)
+            ++ind;
+        const i = ind;
+
+        // key is found in current node
+        if(i < this.size && !re) {
+            // if current is leaf, simply remove the entry and return its value
+            if(this.leaf) {
+                const v = this.entries[i].value;
+                for(let j = i + 1; j < this.size; ++j)
+                    this.entries[j - 1] = this.entries[j];
+                return v;
+            }
+
+            // replace current entry with the entry just precede it and recursively delete the
+            // predecessors
+            if(this.children[i].size >= this.minEntries) {
+                let curr = this.children[i];
+                while(!curr.leaf)
+                    curr = curr.children[curr.size];
+                this.entries[i] = curr.entries[curr.size - 1];
+                return this.children[i].remove(key);
+            }
+
+            // replace current entry with the successor of it and recursively delete the successors
+            if(this.children[i + 1].size >= this.minEntries) {
+                let curr = this.children[i];
+                while(!curr.leaf)
+                    curr = curr.children[0];
+                this.entries[i] = curr.entries[0];
+                return this.children[i + 1].remove(key);
+            }
+
+            // if current child and next child has less entries than required, merge two children
+            this.mergeRightChild(i);
+            return this.children[i].remove(key);
+        }
+
+        // leaf node but key not presents, so not in tree
+        if(this.leaf)
+            return null;
+
+        // test if it is in the last child
+        const last = i === this.size;
+
+        // fill the child if not enough entries
+        if(this.children[i].size < this.minEntries)
+            if(i && this.children[i - 1].size >= this.minEntries) {
+                // borrow from previous child
+                const c = this.children[i], pc = this.children[i - 1];
+
+                // create space for insert
+                let j = c.size;
+                for(; j > 0; --j) {
+                    c.entries[j] = c.entries[j - 1];
+                    if(!c.leaf)
+                        c.children[j + 1] = c.children[j];
+                }
+                if(!c.leaf) // last child
+                    c.children[j + 1] = c.children[j];
+
+                // pull down the entry to the head
+                c.entries[j] = this.entries[i - 1];
+
+                // adjust current child size
+                ++c.size;
+
+                // move the last child of previous child as this first child if this is not leaf
+                // node
+                if(!this.leaf)
+                    c.children[j] = pc.children[pc.size];
+
+                // move the last entry from previous child to this node
+                this.entries[i - 1] = pc.entries[pc.size - 1];
+
+                // adjust previous child size
+                --pc.size;
+            } else if(i !== this.size && this.children[i + 1].size >= this.minEntries) {
+                // borrow from next child
+                const c = this.children[i], nc = this.children[i + 1];
+
+                // put the entry as the first entry of its child
+                c.entries[c.size] = this.entries[i];
+
+                // first child of next child move to the last child of current child if not leaf
+                // node
+                if(!c.leaf)
+                    c.children[c.size + 1] = nc.children[0];
+
+                // adjust current child size
+                ++c.size;
+
+                // insert first entry into current position
+                this.entries[i] = nc.entries[0];
+
+                // shrink space of next child
+                let j = 1;
+                for(; j < nc.size; ++j) {
+                    nc.entries[j - 1] = nc.entries[j];
+                    if(!nc.leaf)
+                        nc.children[j - 1] = nc.children[j];
+                }
+                if(!nc.leaf) // last child
+                    nc.children[j - 1] = nc.children[j];
+
+                // adjust next child size
+                --nc.size;
+            } else if(i !== this.size)
+                this.mergeRightChild(i);
+            else
+                this.mergeRightChild(i - 1);
+
+        // last child was merged
+        if(last && i > this.size)
+            return this.children[i - 1].remove(key);
+
+        return this.children[i].remove(key);
     }
 
     splitChild(pos: number): void {
@@ -128,6 +250,28 @@ class BTNode<K, V> extends DataObject {
         }
         return this.children[i].insert(key, value, exists);
     }
+
+    private mergeRightChild(pos: number): void {
+        // copy all data from the next node and include the entry from the current node
+        const c = this.children[pos], cn = this.children[pos + 1];
+        c.entries[this.minEntries - 1] = this.entries[pos];
+        let i = 0;
+        for(; i < cn.size; ++i) {
+            c.entries[this.minEntries + i] = cn.entries[i];
+            if(!c.leaf)
+                c.children[this.minEntries + i] = cn.children[i];
+        }
+        if(!c.leaf) // last child
+            c.children[this.minEntries + i] = cn.children[i];
+        c.size += cn.size + 1;
+
+        // remove the key pull down to the child, remove the node
+        for(i = pos + 1; i < this.size; ++i) {
+            this.entries[i - 1] = this.entries[i];
+            this.children[i] = this.children[i + 1];
+        }
+        --this.size;
+    }
 }
 
 export class TreeMap<K, V> extends DataObject {
@@ -148,6 +292,24 @@ export class TreeMap<K, V> extends DataObject {
 
     put(key: K, value: V): V {
         return this.insert(key, value, n => n.put(key, value));
+    }
+
+    // putting the value of a key is effectively equivalent to removing it but the entry will
+    // not be deleted
+    remove(key: K): V {
+        if(!this.root)
+            return null;
+        let v = this.root.remove(key);
+
+        // shrink height
+        if(!this.root.size)
+            if(this.root.leaf)
+                this.root = null;
+            else
+                this.root = this.root.children[0];
+
+        // return the old value deleted
+        return v;
     }
 
     constructor(private cmpKey: (l: K, r: K) => number, readonly minEntries: number = 4) {
