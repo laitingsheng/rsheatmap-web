@@ -29,11 +29,11 @@ export const rgb = (r: number, g: number, b: number): string =>
 
 // non-recursive
 export function binarySearch<T, U, R>(a: Array<T>, lo: number, hi: number, item: U,
-                                      compare: (l: U, r: T) => number,
+                                      cmp: (l: U, r: T) => number,
                                       consumeIndex: (index: number) => R,
                                       failIndex?: (index: number) => R) {
     while(lo < hi) {
-        const mid = Math.floor(lo + (hi - lo) / 2), re = compare(item, a[mid]);
+        const mid = Math.floor(lo + (hi - lo) / 2), re = cmp(item, a[mid]);
         if(re === 0)
             return consumeIndex(mid);
         if(re < 0)
