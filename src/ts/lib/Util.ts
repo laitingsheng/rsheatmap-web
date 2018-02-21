@@ -2,7 +2,13 @@ export interface Comparable<T> {
     compareTo(o: T): number;
 }
 
+export interface Hashable {
+    hash(): number;
+}
+
 export const compareFunction = <T extends Comparable<T>>(l: T, r: T): number => l.compareTo(r);
+
+export const hash = (h: Hashable) : number => h.hash();
 
 export abstract class DataObject {
     // default conversion
