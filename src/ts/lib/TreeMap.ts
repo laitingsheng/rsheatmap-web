@@ -63,10 +63,9 @@ class BTNode<K, V> extends DataObject {
 
     remove(key: K): V {
         // see if the key is in current node
-        let ind = 0, re: number;
-        while(ind < this.size && (re = this.cmpKey(this.entries[ind].key, key)) < 0)
-            ++ind;
-        const i = ind;
+        let i = 0, re: number;
+        while(i < this.size && (re = this.cmpKey(this.entries[i].key, key)) < 0)
+            ++i;
 
         // key is found in current node
         if(i < this.size && !re) {
@@ -75,6 +74,7 @@ class BTNode<K, V> extends DataObject {
                 const v = this.entries[i].value;
                 for(let j = i + 1; j < this.size; ++j)
                     this.entries[j - 1] = this.entries[j];
+                --this.size;
                 return v;
             }
 
@@ -171,12 +171,12 @@ class BTNode<K, V> extends DataObject {
 
                 // adjust next child size
                 --nc.size;
-            } else if(i !== this.size)
+            } else if(!last)
                 this.mergeRightChild(i);
             else
                 this.mergeRightChild(i - 1);
 
-        // last child was merged
+        // test if last child was merged
         if(last && i > this.size)
             return this.children[i - 1].remove(key);
 
