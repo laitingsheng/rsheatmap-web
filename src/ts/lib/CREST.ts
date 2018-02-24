@@ -292,7 +292,7 @@ export function lineSweepCRESTCir(regions: Array<CirRegion>): number | never {
     let maxOverlap = 1;
 
     // add all critical events
-    /*const ticks: Array<CirTick> = [];
+    const ticks: Array<CirTick> = [];
     regions.forEach((v, i) => {
         ticks.push(v.leftTick, v.rightTick, v.bottomTick, v.topTick);
         for(let j = i + 1; j < regions.length; ++j) {
@@ -324,7 +324,7 @@ export function lineSweepCRESTCir(regions: Array<CirRegion>): number | never {
                 throw `corrupted data`;
         }
         prevTick = xTick;
-    });*/
+    });
 
     return maxOverlap;
 }
