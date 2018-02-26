@@ -274,12 +274,8 @@ class BTNode<K, V> extends DataObject {
     }
 }
 
-export class TreeMap<K, V> extends DataObject implements Iterable<[K, V]> {
+export class TreeMap<K, V> extends DataObject {
     private root: BTNode<K, V>;
-
-    [Symbol.iterator](): Iterator<[K, V]> {
-        return undefined;
-    }
 
     forEach(callback: (v: V, k: K) => void): void {
         if(this.root)

@@ -117,11 +117,26 @@ export function linkedMergeSort<T>(start: LNode<T>, end: LNode<T>,
     return l;
 }
 
+class ListIterator<T> implements Iterator<T> {
+    next(): IteratorResult<T> {
+        let re = { value: this.curr ? this.curr.data : undefined, done: this.curr === null };
+        this.curr = this.curr.next;
+        return re;
+    }
+
+    constructor(private curr: LNode<T>) {
+    }
+}
+
 // doubly linked list
-export class List<T> extends Linked<T> implements Stack<T>, Queue<T> {
+export class List<T> extends Linked<T> implements Stack<T>, Queue<T>, Iterable<T> {
     front: () => T;
     popBack: () => T;
     popFront: () => T;
+
+    [Symbol.iterator](): Iterator<T> {
+        return new ListIterator(this.first);
+    }
 
     forEach(callback: (value: T, index: number) => void): void {
         let curr = this.first, i = 0;
