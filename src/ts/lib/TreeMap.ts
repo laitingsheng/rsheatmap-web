@@ -1,6 +1,6 @@
 import { DataObject } from './Util';
 
-class Entry<K, V> extends DataObject {
+export class Entry<K, V> extends DataObject {
     toString(): string {
         return `[${this.key} ${this.value}]`;
     }
@@ -84,8 +84,9 @@ class BTNode<K, V> extends DataObject {
                 let curr = this.children[i];
                 while(!curr.leaf)
                     curr = curr.children[curr.size];
-                this.entries[i] = curr.entries[curr.size - 1];
-                return this.children[i].remove(key);
+                let prevEntry = curr.entries[curr.size - 1];
+                this.entries[i] = prevEntry;
+                return this.children[i].remove(prevEntry.key);
             }
 
             // replace current entry with the successor of it and recursively delete the successors
@@ -93,8 +94,9 @@ class BTNode<K, V> extends DataObject {
                 let curr = this.children[i];
                 while(!curr.leaf)
                     curr = curr.children[0];
-                this.entries[i] = curr.entries[0];
-                return this.children[i + 1].remove(key);
+                let nextEntry = curr.entries[0];
+                this.entries[i] = nextEntry;
+                return this.children[i + 1].remove(nextEntry.key);
             }
 
             // if current child and next child has less entries than required, merge two children
@@ -217,7 +219,7 @@ class BTNode<K, V> extends DataObject {
     }
 
     private insert(key: K, value: V, exists: (entry: Entry<K, V>) => V): V {
-        let i = 0, re: number, tmp;
+        let i = 0, re: number;
 
         // search over current keys to identify the appropriate position
         while(i < this.size && (re = this.cmpKey(this.entries[i].key, key)) < 0)
@@ -229,7 +231,7 @@ class BTNode<K, V> extends DataObject {
 
         // if current is leaf then insert
         if(this.leaf) {
-            tmp = this.size - 1;
+            let tmp = this.size - 1;
             while(tmp > i) {
                 this.entries[tmp + 1] = this.entries[tmp];
                 --tmp;
@@ -283,6 +285,9 @@ export class TreeMap<K, V> extends DataObject {
     }
 
     get(key: K): V {
+        if(!this.root)
+            return null;
+
         return this.root.get(key);
     }
 
@@ -299,6 +304,7 @@ export class TreeMap<K, V> extends DataObject {
     remove(key: K): V {
         if(!this.root)
             return null;
+
         let v = this.root.remove(key);
 
         // shrink height

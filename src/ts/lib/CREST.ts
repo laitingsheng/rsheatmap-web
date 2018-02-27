@@ -1,4 +1,4 @@
-import { binarySearch, Comparable, ComparableDataObject, compareFunction } from './Util';
+import { Comparable, ComparableDataObject } from './Util';
 import Circle = google.maps.Circle;
 import LatLng = google.maps.LatLng;
 import Rectangle = google.maps.Rectangle;
@@ -37,34 +37,7 @@ export abstract class AbstractTick<R extends Comparable<R>>
     }
 }
 
-export class RectTick extends AbstractTick<RectRegion> {
-    constructor(tick: number, region: RectRegion, status: number) {
-        super(tick, region, status);
-    }
-}
-
 export class RectRegion extends ComparableDataObject<RectRegion> {
-    readonly minXTick: RectTick;
-    readonly maxXTick: RectTick;
-    readonly minYTick: RectTick;
-    readonly maxYTick: RectTick;
-
-    get minX(): number {
-        return +this.minXTick;
-    }
-
-    get minY(): number {
-        return +this.maxXTick;
-    }
-
-    get maxX(): number {
-        return +this.minYTick;
-    }
-
-    get maxY(): number {
-        return +this.maxYTick;
-    }
-
     static fromRectangle(rectangle: Rectangle): RectRegion {
         const bound = rectangle.getBounds(), sw = bound.getSouthWest(), ne = bound.getNorthEast();
         return new RectRegion(sw.lng(), sw.lat(), ne.lng(), ne.lat());
@@ -88,179 +61,112 @@ export class RectRegion extends ComparableDataObject<RectRegion> {
         return this.minX < o.maxX && this.maxX > o.minX && this.minY < o.maxY && this.maxY > o.minY;
     }
 
-    private constructor(minX: number, minY: number, maxX: number, maxY: number) {
+    private constructor(readonly minX: number, readonly minY: number,
+                        readonly maxX: number, readonly maxY: number) {
         super();
-
-        this.minXTick = new RectTick(minX, this, 1);
-        this.maxXTick = new RectTick(maxX, this, 0);
-        this.minYTick = new RectTick(minY, this, 1);
-        this.maxYTick = new RectTick(maxY, this, 0);
     }
 }
+
+type Axes = [Set<number>, Map<number, number>];
 
 export function lineSweepCRESTRect(regions: Array<RectRegion>): number | never {
     let maxOverlap = 1;
 
     // store critical events in order
-    const ticks: Array<RectTick> = [];
-    regions.forEach(r => ticks.push(r.minXTick, r.maxXTick));
-    ticks.sort(compareFunction);
+    const canvas = new Map<number, Axes>();
+    regions.forEach(v => {
+        let t = canvas.get(v.minX);
+        if(t) {
+            let yt = t[1].get(v.minY);
+            if(yt)
+                t[1].set(v.maxY, yt + 1);
+            else
+                t[1].set(v.minY, 1);
+
+            yt = t[1].get(v.maxY);
+            if(yt)
+                t[1].set(v.maxY, yt - 1);
+            else
+                t[1].set(v.maxY, -1);
+        } else
+            canvas.set(v.minX, [new Set(), new Map([[v.minY, 1], [v.maxY, -1]])]);
+
+        t = canvas.get(v.maxX);
+        if(t) {
+            t[0].add(v.minY);
+            t[0].add(v.maxY);
+        } else
+            canvas.set(v.maxX, [new Set([v.minY, v.maxY]), new Map()]);
+    });
 
     // line-sweep
-    let sweep: Array<RectTick> = [], prevTick: RectTick;
-    ticks.forEach(xTick => {
-        let overlap = 0;
-        // skip overlapping event
-        if(prevTick && prevTick.tick !== xTick.tick)
-            sweep.forEach(yTick => {
-                if(yTick.status)
-                    ++overlap;
-                else
-                    --overlap;
+    let sweep = new Map<number, number>(), prevA: [number, Axes] = null;
+    const xAxis = Array.from(canvas.entries());
+    xAxis.sort((l, r) => l[0] - r[0]);
+    xAxis.forEach(a => {
+        const ySweep = Array.from(sweep.entries());
+        ySweep.sort((l, r) => l[0] - r[0]);
+        if(prevA) {
+            let overlap = 0, prevY: [number, number];
+            ySweep.forEach(v => {
+                if(prevY)
+                    overlap += v[1];
 
                 if(overlap > maxOverlap)
                     maxOverlap = overlap;
-            });
 
-        switch(xTick.status) {
-            case 0:
-                binarySearch(sweep, 0, sweep.length, xTick.region.minYTick, compareFunction,
-                             index => sweep.splice(index, 1));
-                binarySearch(sweep, 0, sweep.length, xTick.region.maxYTick, compareFunction,
-                             index => sweep.splice(index, 1));
-                break;
-            case 1:
-                sweep.push(xTick.region.minYTick, xTick.region.maxYTick);
-                sweep.sort(compareFunction);
-                break;
-            default:
-                throw 'corrupted data';
+                prevY = v;
+            });
         }
 
-        prevTick = xTick;
+        a[1][0].forEach(v => sweep.delete(v));
+        a[1][1].forEach((v, k) => {
+            let tmp = sweep.get(k);
+            if(!tmp) {
+                sweep.set(k, v);
+                return;
+            }
+
+            tmp += v;
+            if(tmp)
+                sweep.set(k, tmp);
+            else
+                sweep.delete(k);
+        });
+
+        prevA = a;
     });
 
     return maxOverlap;
 }
 
-export class CirTick extends AbstractTick<CirRegion> {
-    pair: CirTick;
-
-    compareTo(o: CirTick): number {
-        if(this === o)
-            return 0;
-
-        let re = this.tick - o.tick;
-        if(re)
-            return re;
-        if(re = this.region.compareTo(o.region))
-            return re;
-        if(re = this.region2.compareTo(o.region2))
-            return re;
-        if(re = this.status - o.status)
-            return re;
-        if(re = this.verticalStatus - o.verticalStatus)
-            return re;
-        if(re = this.pos.lng() - o.pos.lng())
-            return re;
-        return this.pos.lat() - o.pos.lat();
-    }
-
-    toString(): string {
-        return `${this.tick} ${this.region} ${this.region2} ${this.status} ${this.verticalStatus}`;
-    }
-
-    constructor(tick: number, region: CirRegion, readonly pos: google.maps.LatLng, status: number,
-                readonly verticalStatus: number = 1, readonly region2: CirRegion = null) {
-        super(tick, region, status);
-    }
-}
-
 export class CirRegion extends ComparableDataObject<CirRegion> {
-    readonly leftTick: CirTick;
-    readonly rightTick: CirTick;
-    readonly topTick: CirTick;
-    readonly bottomTick: CirTick;
-    readonly events: Map<string, CirTick>;
-
-    get left(): number {
-        return +this.leftTick;
-    }
-
-    get right(): number {
-        return +this.rightTick;
-    }
-
-    get top(): number {
-        return +this.topTick;
-    }
-
-    get bottom(): number {
-        return +this.bottomTick;
-    }
-
-    get centre() {
-        return this.circle.getCenter();
-    }
-
-    get radius() {
-        return this.circle.getRadius();
-    }
+    readonly centre: LatLng;
+    readonly radius: number;
 
     static fromCircle(circle: Circle): CirRegion {
         return new CirRegion(circle);
     }
 
     compareTo(o: CirRegion): number {
-        let re = this.left - o.left;
-        if(re)
-            return re;
-        if(re = this.bottom - o.bottom)
-            return re;
-        if(re = this.right - o.right)
-            return re;
-        return this.top - o.top;
+        if(this.centre.equals(o.centre))
+            return this.radius - o.radius;
+
+        const re = computeHeading(this.centre, o.centre);
+        if(re < 0)
+            return -1;
+        return 1;
     }
 
     intersect(o: CirRegion): boolean {
         return computeDistanceBetween(this.centre, o.centre) < this.radius + o.radius;
     }
 
-    intersectWith(o: CirRegion): [CirTick, CirTick] {
+    intersectWith(o: CirRegion): [LatLng, LatLng] {
         const tc = this.centre, oc = o.centre, d = computeDistanceBetween(tc, oc),
             h = computeHeading(tc, oc), a = o.radius, b = this.radius,
             A = Math.acos((b * b + d * d - a * a) / (2 * b * d)) / Math.PI * 180;
-        let lt: CirTick, rt: CirTick;
-
-        if(h === 0) { // positive y-axis
-            const l = computeOffset(tc, b, -A), r = computeOffset(tc, b, A);
-            lt = new CirTick(l.lng(), this, l, 1, 1, o);
-            rt = new CirTick(r.lng(), this, r, 1, 1, o);
-        } else if(h === -180) { // negative y-axis
-            const l = computeOffset(tc, b, -180 + A), r = computeOffset(tc, b, 180 - A);
-            lt = new CirTick(l.lng(), this, l, 1, 1, o);
-            rt = new CirTick(r.lng(), this, r, 1, 1, o);
-        } else if(h < 0 && h >= -90) { // second quarter (with negative x-axis)
-            const l = computeOffset(tc, b, h - A), r = computeOffset(tc, b, h + A);
-            lt = new CirTick(l.lng(), this, l, 1, 0, o);
-            rt = new CirTick(r.lng(), this, r, 1, 2, o);
-        } else if(h < -90 && h > -180) { // third quarter
-            const l = computeOffset(tc, b, h + A), r = computeOffset(tc, b, h - A);
-            lt = new CirTick(l.lng(), this, l, 1, 2, o);
-            rt = new CirTick(r.lng(), this, r, 1, 0, o);
-        } else if(h > 0 && h < 90) { // first quarter
-            const l = computeOffset(tc, b, h - A), r = computeOffset(tc, b, h + A);
-            lt = new CirTick(l.lng(), this, l, 1, 2, o);
-            rt = new CirTick(r.lng(), this, r, 1, 0, o);
-        } else { // forth quarter (including positive x-axis)
-            const l = computeOffset(tc, b, h + A), r = computeOffset(tc, b, h - A);
-            lt = new CirTick(l.lng(), this, l, 1, 0, o);
-            rt = new CirTick(r.lng(), this, r, 1, 2, o);
-        }
-
-        lt.pair = rt;
-        rt.pair = lt;
-        return [lt, rt];
+        return [computeOffset(tc, b, h - A), computeOffset(tc, b, h + A)];
     }
 
     toString(): string {
@@ -269,22 +175,6 @@ export class CirRegion extends ComparableDataObject<CirRegion> {
 
     private constructor(readonly circle: Circle) {
         super();
-
-        const bound = circle.getBounds(), sw = bound.getSouthWest(), ne = bound.getNorthEast();
-
-        let tmp = new LatLng(this.centre.lat(), sw.lng());
-        this.leftTick = new CirTick(tmp.lng(), this, tmp, 0);
-        tmp = new LatLng(this.centre.lat(), ne.lng());
-        this.leftTick.pair = this.rightTick = new CirTick(tmp.lng(), this, tmp, 2);
-        this.rightTick.pair = this.leftTick;
-
-        tmp = new LatLng(sw.lat(), this.centre.lng());
-        this.topTick = new CirTick(tmp.lng(), this, tmp, 1, 2);
-        tmp = new LatLng(ne.lat(), this.centre.lng());
-        this.topTick.pair = this.bottomTick = new CirTick(tmp.lng(), this, tmp, 1, 0);
-        this.bottomTick.pair = this.topTick;
-
-        this.events = new Map();
     }
 }
 
@@ -292,13 +182,38 @@ export function lineSweepCRESTCir(regions: Array<CirRegion>): number | never {
     let maxOverlap = 1;
 
     // add all critical events
-    const ticks: Array<CirTick> = [];
+    const canvas = new Map<number, Axes>();
     regions.forEach((v, i) => {
-        ticks.push(v.leftTick, v.rightTick, v.bottomTick, v.topTick);
+        const bound = v.circle.getBounds(), sw = bound.getSouthWest(),
+            ne = bound.getNorthEast(), xMin = sw.lng(), xMid = v.centre.lng(), xMax = ne.lng(),
+            yMin = sw.lat(), yMax = ne.lat();
+
+        if(!canvas.get(xMin))
+            canvas.set(xMin, [new Set(), new Map()]);
+
+        let t = canvas.get(xMid);
+        if(t) {
+            let yt = t[1].get(yMin);
+            if(yt)
+                t[1].set(yMin, yt + 1);
+            else
+                t[1].set(yMin, 1);
+
+            yt = t[1].get(yMax);
+            if(yt)
+                t[1].set(yMax, yt - 1);
+            else
+                t[1].set(yMax, -1);
+        } else
+            canvas.set(xMid, [new Set(), new Map([[yMin, 1], [yMax, -1]])]);
+
+        if(!canvas.get(xMax))
+            canvas.set(xMax, [new Set(), new Map()]);
+
         for(let j = i + 1; j < regions.length; ++j) {
             const child = regions[j];
             if(v.intersect(child)) {
-                const events = v.intersectWith(child);
+                const ins = v.intersectWith(child);
                 ticks.push(...events);
                 v.events.set(events[0].toString(), events[0]);
                 v.events.set(events[1].toString(), events[1]);
@@ -315,7 +230,7 @@ export function lineSweepCRESTCir(regions: Array<CirRegion>): number | never {
 
         switch(xTick.status) {
             case 0:
-                 break;
+                break;
             case 1:
                 break;
             case 2:
