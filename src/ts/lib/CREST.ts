@@ -234,6 +234,5 @@ export function lineSweepCRESTCir(regions: Array<CirRegion>): number | never {
         });
     });
 
-    alert(maxOverlap);
     return maxOverlap;
 }
