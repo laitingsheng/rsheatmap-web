@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
+import { Row } from './Main';
 import { ComparableDataObject, rgb } from '../lib/Util';
 import { CirRegion, lineSweepCRESTCir, lineSweepCRESTRect, RectRegion } from '../lib/CREST';
 import Circle = google.maps.Circle;
@@ -22,7 +23,7 @@ export interface Coordinate {
     readonly y: number;
 }
 
-export class Record extends ComparableDataObject<Record> implements Coordinate {
+export abstract class Record extends ComparableDataObject<Record> implements Coordinate {
     get x(): number {
         return this.pos.lng();
     }
@@ -30,6 +31,8 @@ export class Record extends ComparableDataObject<Record> implements Coordinate {
     get y(): number {
         return this.pos.lat();
     }
+
+    abstract applyHighlight(selected: boolean): void;
 
     compareTo(o: Record): number {
         if(this === o)
@@ -51,9 +54,21 @@ export class Record extends ComparableDataObject<Record> implements Coordinate {
     }
 }
 
-export class Point extends Record {
+class Point extends Record {
     readonly cirBound: CirRegion;
     readonly rectBound: RectRegion;
+
+    applyHighlight(selected: boolean): void {
+        const colour = selected ? 'Red' : 'White';
+        this.marker.setIcon(
+            {
+                path: SymbolPath.CIRCLE,
+                scale: 2,
+                fillColor: colour,
+                strokeColor: colour
+            }
+        );
+    }
 
     constructor(pos: google.maps.LatLng, place: google.maps.places.PlaceResult,
                 readonly marker: google.maps.Marker, readonly circle: google.maps.Circle,
@@ -75,6 +90,7 @@ export type Display = 'Circle' | 'Rectangle';
 
 export interface MapComponentProps {
     resetSearch: () => void;
+    rows: Map<string, [Row, boolean, Record]>;
     updateCount: (count: number) => void;
     updateHistory: () => void;
     updateSearchBounds: (bound: LatLngBounds) => void;
@@ -126,6 +142,9 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.updateCir = this.updateRect = true;
         this.updateFill([p]);
         this.props.updateCount(this.size);
+
+        this.props.rows.set(p.toKey(), [null, false, p]);
+
         this.props.updateHistory();
     }
 
@@ -143,6 +162,9 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.updateCir = this.updateRect = true;
         this.updateFill(inserted);
         this.props.updateCount(this.size);
+
+        inserted.forEach(p => this.props.rows.set(p.toKey(), [null, false, p]));
+
         this.props.updateHistory();
     }
 
@@ -181,32 +203,41 @@ export class MapComponent extends React.Component<MapComponentProps> {
         this.props.updateCount(0);
     }
 
-    generateRecords(): Array<Record> {
-        return Array.from(this.points.values());
-    }
-
     removePoint(x: number, y: number): void {
         if(this.deletePoint(x, y)) {
             this.updateCir = this.updateRect = true;
             this.updateFill();
-            this.props.updateHistory();
             this.props.updateCount(this.size);
+
+            this.props.rows.delete(stringifyCoordinate(x, y));
+
+            this.props.updateHistory();
         }
     }
 
-    removePoints(points: Array<Coordinate>): void {
+    removeSelected(): void {
+        const selected: Array<Record> = [];
+        this.props.rows.forEach(v => {
+            if(v[1])
+                selected.push(v[2]);
+        });
+
         let c = 0;
-        points.forEach(p => {
+        selected.forEach(p => {
             if(this.deletePoint(p.x, p.y))
                 ++c;
         });
-
         if(c) {
             this.updateCir = this.updateRect = true;
             this.updateFill();
-            this.props.updateHistory();
             this.props.updateCount(this.size);
         }
+
+        selected.forEach(p => {
+            this.props.rows.delete(p.toKey());
+        });
+
+        this.props.updateHistory();
     }
 
     render() {
@@ -299,8 +330,8 @@ export class MapComponent extends React.Component<MapComponentProps> {
                     icon: {
                         path: SymbolPath.CIRCLE,
                         scale: 2,
-                        fillColor: 'Red',
-                        strokeColor: 'Red'
+                        fillColor: 'White',
+                        strokeColor: 'White'
                     }
                 }
             ),
@@ -332,6 +363,13 @@ export class MapComponent extends React.Component<MapComponentProps> {
         else
             p.circle.setMap(this.map);
 
+        p.marker.addListener('click', e => {
+            const r = this.props.rows.get(stringifyCoordinate(e.latLng.lng(), e.latLng.lat()));
+            r[1] = !r[1];
+            if(r[0])
+                r[0].select(r[1]);
+            r[2].applyHighlight(r[1]);
+        });
         p.marker.addListener('rightclick', e => this.removePoint(e.latLng.lng(), e.latLng.lat()));
         this.points.set(p.toKey(), p);
 

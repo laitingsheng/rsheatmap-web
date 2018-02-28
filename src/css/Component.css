@@ -69,3 +69,11 @@ input::-webkit-inner-spin-button {
 .btn-reset {
     margin-left: 0.25rem;
 }
+
+td.lightgrey {
+    background-color: lightgrey;
+}
+
+td.white {
+    background-color: white;
+}
