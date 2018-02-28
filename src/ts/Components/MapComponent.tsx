@@ -332,7 +332,7 @@ export class MapComponent extends React.Component<MapComponentProps> {
         else
             p.circle.setMap(this.map);
 
-        p.marker.addListener('rightclick', e => this.removePoint(e.latLng.lat(), e.latLng.lng()));
+        p.marker.addListener('rightclick', e => this.removePoint(e.latLng.lng(), e.latLng.lat()));
         this.points.set(p.toKey(), p);
 
         return p;

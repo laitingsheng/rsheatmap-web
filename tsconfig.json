@@ -5,6 +5,8 @@
     "target": "ES5",
     "lib": [
       "ES6",
+      "ES7",
+      "ESNext",
       "DOM",
       "DOM.Iterable",
       "ScriptHost"

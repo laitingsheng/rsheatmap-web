@@ -4,16 +4,6 @@ import '../../css/Component.css';
 import '../../css/Map.css';
 import LatLngBounds = google.maps.LatLngBounds;
 
-interface TitleProps {
-    text: string;
-}
-
-class Title extends React.PureComponent<TitleProps> {
-    render() {
-        return <p className="form-title">{this.props.text}</p>;
-    }
-}
-
 class InputNumberBox extends React.PureComponent<React.InputHTMLAttributes<any>> {
     private input: HTMLInputElement;
 
@@ -65,7 +55,7 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
             <>
                 <form className="wrap-full-box wrap-inner-box" onSubmit={this.addPoint}
                       onReset={this.resetPoints}>
-                    <Title text="Point"/>
+                    <p className="form-title">Point</p>
                     <InputNumberBox name="Longitude" id="lng" placeholder="Enter longitude"
                                     onChange={e => this.setState({ lng: e.target.value })}
                                     min="-180" max="180" step="0.000001"
@@ -83,7 +73,7 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
                 </form>
                 <form className="wrap-full-box wrap-inner-box" onSubmit={this.change}
                       onReset={this.switch}>
-                    <Title text={`Query Region (${this.state.queryType})`}/>
+                    <p className="form-title">Query Region (${this.state.queryType})</p>
                     {
                         this.state.queryType === 'Rectangle' ?
                             <>
