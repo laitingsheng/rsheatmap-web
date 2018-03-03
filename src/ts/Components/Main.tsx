@@ -73,7 +73,7 @@ class InputForm extends React.PureComponent<InputFormProps, InputFormState> {
                 </form>
                 <form className="wrap-full-box wrap-inner-box" onSubmit={this.change}
                       onReset={this.switch}>
-                    <p className="form-title">Query Region (${this.state.queryType})</p>
+                    <p className="form-title">Query Region ({this.state.queryType})</p>
                     {
                         this.state.queryType === 'Rectangle' ?
                             <>
